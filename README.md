@@ -6,9 +6,17 @@ Paladines Justin, Reyes Paladines
 Firebase 
  <img width="936" height="123" alt="image" src="https://github.com/user-attachments/assets/1dd75b60-f1c8-4827-a9ec-87e6e5db82f5" />
 
+ <img width="941" height="158" alt="image" src="https://github.com/user-attachments/assets/71574f60-f0bd-470b-9b75-d67d59364e55" />
+
+ <img width="941" height="723" alt="image" src="https://github.com/user-attachments/assets/5076f857-8c32-4ae8-9c6c-7b2a8c303d80" />
+
+
+
  
 Supabase  
-  <img width="944" height="528" alt="image" src="https://github.com/user-attachments/assets/0ad83358-9d33-4c9b-9deb-5bf3c836dc6d" />
+  <img width="832" height="518" alt="image" src="https://github.com/user-attachments/assets/2045cc02-4a5c-4a46-9744-e658302f1564" />
+
+  <img width="944" height="528" alt="image" src="https://github.com/user-attachments/assets/629a7cbf-8bb5-4a60-ae0f-2192b764c138" />
 
 
 
