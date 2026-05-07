@@ -1,3 +1,18 @@
+Tarea Autenticación Firebase y Supabase
+
+Paladines Justin, Reyes Paladines
+
+
+Firebase 
+ <img width="936" height="123" alt="image" src="https://github.com/user-attachments/assets/1dd75b60-f1c8-4827-a9ec-87e6e5db82f5" />
+
+ 
+Supabase  
+  <img width="944" height="528" alt="image" src="https://github.com/user-attachments/assets/0ad83358-9d33-4c9b-9deb-5bf3c836dc6d" />
+
+
+
+
 # Login Fullstack con Firebase y Supabase
 
 Este ZIP contiene dos ejercicios completos para clase:
