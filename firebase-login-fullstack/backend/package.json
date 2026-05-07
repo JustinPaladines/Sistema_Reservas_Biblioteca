@@ -1,0 +1,19 @@
+{
+  "name": "firebase-login-backend",
+  "version": "1.0.0",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "cors": "latest",
+    "dotenv": "latest",
+    "express": "latest",
+    "firebase-admin": "latest"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
