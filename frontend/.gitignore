@@ -7,10 +7,21 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# Dependencias (Cubre raíz, backend y frontend)
+node_modules/
+**/node_modules/
+
+# Producción / Compilación
+dist/
+dist-ssr/
+build/
+
+# Variables de entorno y credenciales (¡Súper protegido!)
+.env
+.env.*
+**/ .env
+**/ .env.*
+serviceAccountKey.json
 
 # Editor directories and files
 .vscode/*
@@ -22,7 +33,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
-node_modules/
-.env
-serviceAccountKey.json

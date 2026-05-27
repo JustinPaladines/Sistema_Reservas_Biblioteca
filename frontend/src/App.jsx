@@ -1,40 +1,35 @@
-import LoginCard from "./components/LoginCard";
-import Buhoimg from "./components/Buhoimg";
+// src/App.jsx
+import { Routes, Route } from "react-router-dom";
+
+// 1. Importamos tu componente contenedor Login
+import Login from "./components/Login"; 
+
+
+import OlvideContrasena from "./components/OlvideContrasena";
+import ActualizarContrasena from "./components/ActualizarContrasena";
+import Registro from "./components/Registro";
+
+import Profile from "./pages/Perfil";
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-[#F3F4F6] flex items-center justify-center p-10">
+    <Routes>
+      <Route path="/" element={<Login />} />
 
-      <div className="
-        w-full max-w-[1200px]
-        h-[700px]
-        bg-white
-        rounded-[30px]
-        shadow-[0_20px_60px_rgba(0,0,0,0.08)]
-        flex
-        overflow-hidden
-      ">
+      <Route
+        path="/olvide-contrasena"
+        element={<OlvideContrasena />}
+      />
 
-        {/* IZQUIERDA */}
-        <div className="
-          w-[45%]
-          flex items-center justify-center
-          px-20
-        ">
-          <LoginCard />
-        </div>
+      <Route
+        path="/ActualizarContrasena"
+        element={<ActualizarContrasena />}
+      />
 
-        {/* DERECHA */}
-        <div className="
-          w-[55%]
-          flex items-center justify-center
-          bg-[#F7F7FB]
-        ">
-          <Buhoimg />
-        </div>
+      <Route path="/registro" element={<Registro />} />
+      
+      <Route path="/perfil" element={<Profile />} />
 
-      </div>
-
-    </div>
+    </Routes>
   );
 }
