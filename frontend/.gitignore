@@ -16,11 +16,11 @@ dist/
 dist-ssr/
 build/
 
-# Variables de entorno y credenciales (¡Súper protegido!)
+# Variables de entorno y credenciales 
 .env
 .env.*
-**/ .env
-**/ .env.*
+**/.env
+**/.env.*
 serviceAccountKey.json
 
 # Editor directories and files
