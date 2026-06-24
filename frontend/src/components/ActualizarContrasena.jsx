@@ -7,6 +7,7 @@ export default function ActualizarContrasena() {
   const [password, setPassword] = useState("");
   const [mensaje, setMensaje] = useState("");
 
+  
   const actualizarPassword = async (e) => {
     e.preventDefault();
 
