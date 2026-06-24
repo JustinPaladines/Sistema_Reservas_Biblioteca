@@ -1,0 +1,17 @@
+/* src/styles/buhoimg.css */
+
+.buho-imagen {
+  /* Fuerza a la imagen a ocupar el 100% del ancho y alto disponibles */
+  width: 100%;
+  height: 100%;
+  
+  /* Se expande para cubrir TODO el lado derecho sin dejar bordes vacíos */
+  object-fit: cover;
+  
+  /* Centra la ilustración para que el búho siempre quede en medio */
+  object-position: center;
+  
+  /* Asegura que no haga movimientos */
+  animation: none;
+  display: block;
+}

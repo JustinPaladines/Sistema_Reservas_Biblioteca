@@ -1,0 +1,37 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependencias (Cubre raíz, backend y frontend)
+node_modules/
+**/node_modules/
+
+# Producción / Compilación
+dist
+dist/
+dist-ssr/
+build/
+
+# Variables de entorno y credenciales 
+
+.env
+.env.*
+**/.env
+**/.env.*
+serviceAccountKey.json
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

@@ -1,0 +1,96 @@
+/* src/styles/actualizarContrasena.css */
+
+/* 
+   1. CONTENEDOR PRINCIPAL
+   Ocupa toda la pantalla y centra el formulario
+    */
+.actualizar-container {
+  width: 100vw;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #ffffff;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 20px;
+}
+
+/*
+   2. ESTRUCTURA DEL FORMULARIO
+   Controla el ancho máximo y el espacio entre elementos
+    */
+.actualizar-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  max-width: 320px;
+}
+
+/* 
+   3. ESTILOS DEL TÍTULO
+  */
+.actualizar-title {
+  font-size: 1.75rem;
+  font-weight: bold;
+  color: #6D28D9;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+/* 
+   4. CAMPOS DE ENTRADA (INPUTS) y sus Estados
+   Diseño de la caja de texto y su efecto visual al hacer clic
+    */
+.actualizar-input {
+  border: 1px solid #E5E7EB;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  color: #000;
+  font-size: 0.875rem;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.actualizar-input:focus {
+  box-shadow: 0 0 0 2px rgba(109, 40, 217, 0.1);
+  border-color: #6D28D9;
+}
+
+/* 
+   5. BOTÓN DE ACCIÓN y sus Estados
+   Diseño base (verde), efecto hover (pasar el mouse) y deshabilitado
+    */
+.actualizar-button {
+  background-color: #22C55E;
+  color: #ffffff;
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.actualizar-button:hover:not(:disabled) {
+  background-color: #16A34A;
+}
+
+.actualizar-button:disabled {
+  background-color: #9CA3AF;
+  cursor: not-allowed;
+}
+
+/* 
+   6. TEXTO DE NOTIFICACIÓN / MENSAJES
+   Alertas informativas que aparecen debajo del botón
+   */
+.actualizar-mensaje {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  text-align: center;
+  color: #374151;
+}
