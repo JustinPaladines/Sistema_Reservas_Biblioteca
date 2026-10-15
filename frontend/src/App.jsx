@@ -2,7 +2,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 
 // Componentes Públicos / Autenticación
-import Login from "./components/login"; 
+import Login from "./components/login";
 import Registro from "./components/Registro";
 import OlvideContrasena from "./components/OlvideContrasena";
 import ActualizarContrasena from "./components/ActualizarContrasena";
@@ -13,17 +13,16 @@ import DashboardAdmin from './pages/DashboardAdmin';
 import DashboardBibliotecario from './pages/DashboardBibliotecario';
 import DashboardEstudiante from './pages/DashboardEstudiante';
 import ProtectedRoute from './components/ProtectedRoute';
-//pagina temporal
+
+// página temporal
 import VistaModulo from "./pages/VistaModulo";
 
-//gestión espacios
+// gestión de espacios
 import GestionEspacios from "./pages/GestionEspacios";
 
-//gestión reservas
+// gestión de reservas
 import GestionReservas from "./pages/GestionReservas";
-
 import MisReservas from "./pages/MisReservas";
-
 import GestionReservasBibliotecario from "./pages/GestionReservasBibliotecario";
 
 // buscar espacios
@@ -35,23 +34,19 @@ import GestionBibliotecas from "./pages/GestionBibliotecas";
 // chat IA
 import ChatIA from "./pages/ChatIA";
 
-// gestion de usuarios
+// gestión de usuarios
 import GestionUsuarios from "./pages/GestionUsuarios";
-
-// atención a estudiantes
-import AtencionEstudiantes from "./pages/AtencionEstudiantes";
-
 
 export default function App() {
   return (
     <Routes>
-      {/* "/" y "/login" llevarán a la pantalla de inicio de sesión */}
+      {/* rutas públicas */}
       <Route path="/" element={<Login />} />
       <Route path="/login" element={<Login />} />
       <Route path="/registro" element={<Registro />} />
       <Route path="/olvide-contrasena" element={<OlvideContrasena />} />
       <Route path="/ActualizarContrasena" element={<ActualizarContrasena />} />
-      
+
       {/* página para accesos no autorizados */}
       <Route path="/unauthorized" element={
         <div style={{ padding: '40px', textAlign: 'center' }}>
@@ -60,13 +55,11 @@ export default function App() {
         </div>
       } />
 
-      {/* páginas de rutas protegidas, para los usuarios */}
-      
       {/* administrador */}
       <Route element={<ProtectedRoute allowedRoles={['administrador']} />}>
         <Route path="/admin/dashboard" element={<DashboardAdmin />} />
         <Route path="/admin/espacios" element={<GestionEspacios />} />
-        <Route path="/admin/reservas" element={<GestionReservasBibliotecario/>} />
+        <Route path="/admin/reservas" element={<GestionReservasBibliotecario />} />
         <Route path="/admin/bibliotecas" element={<GestionBibliotecas />} />
         <Route path="/admin/usuarios" element={<GestionUsuarios />} />
       </Route>
@@ -75,8 +68,7 @@ export default function App() {
       <Route element={<ProtectedRoute allowedRoles={['bibliotecario']} />}>
         <Route path="/bibliotecario/dashboard" element={<DashboardBibliotecario />} />
         <Route path="/bibliotecario/espacios" element={<GestionEspacios />} />
-        <Route path="/bibliotecario/reservas" element={<GestionReservasBibliotecario/>} />
-        <Route path="/bibliotecario/estudiantes" element={<AtencionEstudiantes />}/>
+        <Route path="/bibliotecario/reservas" element={<GestionReservasBibliotecario />} />
       </Route>
 
       {/* estudiante */}
@@ -85,7 +77,6 @@ export default function App() {
         <Route path="/estudiante/reservas" element={<GestionReservas />} />
         <Route path="/estudiante/mis-reservas" element={<MisReservas />} />
         <Route path="/estudiante/buscar-espacios" element={<BuscarEspacios />} />
-        
         <Route path="/estudiante/chat" element={<ChatIA />} />
       </Route>
 
@@ -94,10 +85,8 @@ export default function App() {
         <Route path="/perfil" element={<Profile />} />
       </Route>
 
-      {/* redirección por defecto si la ruta ingresada no existe */}
+      {/* redirección por defecto */}
       <Route path="*" element={<Navigate to="/login" replace />} />
-    
-
     </Routes>
   );
 }
