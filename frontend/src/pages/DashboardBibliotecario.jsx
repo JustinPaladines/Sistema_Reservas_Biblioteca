@@ -6,8 +6,7 @@ const DashboardBibliotecario = () => {
     const navigate = useNavigate();
     const modulos = [
         {titulo: "Gestión de espacios", desc: "Ver espacios disponibles y reportar mantenimientos o daños.", ruta: "/bibliotecario/espacios"},
-        {titulo: "Gestión de Reservas", desc: "Ver reservas de la biblioteca y marcar asistencia o no-show.", ruta: "/bibliotecario/reservas"},
-        {titulo: "Atención a Estudiantes", desc: "Buscar reservas y registrar incidentes.", ruta: "/bibliotecario/estudiantes"}
+        {titulo: "Gestión de Reservas", desc: "Buscar y filtrar reservas, gestionar su estado y registrar incidentes.", ruta: "/bibliotecario/reservas"}
     ];
 
     return(
