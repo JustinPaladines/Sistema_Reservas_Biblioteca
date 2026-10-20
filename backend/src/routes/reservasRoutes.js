@@ -317,7 +317,7 @@ router.patch("/:id/finish", async (req, res) => {
         const { data, error } = await supabaseAdmin
             .from("reservas")
             .update({
-                estado: "finalizada",
+                estado: "finalizado",
                 finalizada_at: new Date().toISOString()
             })
             .eq("id", id)
