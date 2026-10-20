@@ -336,7 +336,7 @@ router.patch("/:id/finish", async (req, res) => {
         // obtener el espacio asociado a la reserva
         const { data: reserva, error: reservaError } = await supabaseAdmin
             .from("reservas")
-            .select("espacio_id")
+            .select("espacio_id, inconvenientes")
             .eq("id", id)
             .single();
 
