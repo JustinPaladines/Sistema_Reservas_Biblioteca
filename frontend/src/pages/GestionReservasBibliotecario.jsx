@@ -151,7 +151,8 @@ const GestionReservasBibliotecario = () => {
                                                 </button>
                                             )}
 
-                                            {String(reserva.estado).toLowerCase() === "en progreso" && (
+                                            {(String(reserva.estado).toLowerCase() === "activa" ||
+                                                String(reserva.estado).toLowerCase() === "en progreso") && (
                                                 <button
                                                     className="btn btn-primary"
                                                     onClick={() => finalizarReserva(reserva.id)}
