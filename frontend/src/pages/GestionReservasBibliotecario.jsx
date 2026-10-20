@@ -15,9 +15,10 @@ const GestionReservasBibliotecario = () => {
     const obtenerReservas = async () => {
         try {
             const data = await api("/api/reservations");
-            // se muestran solo las reservas que siguen activas
+            // se muestran las reservas activas y las que están en progreso
             setReservas(data.filter((reserva) => {
-                return String(reserva.estado).toLowerCase() === "activa";
+                const estado = String(reserva.estado).toLowerCase();
+                return estado === "activa" || estado === "en progreso";
             }));
         } catch (error) {
             console.error("Error cargando reservas:", error);
@@ -150,22 +151,28 @@ const GestionReservasBibliotecario = () => {
                                                 </button>
                                             )}
 
-                                            {String(reserva.estado).toLowerCase() !== "cancelada" &&
-                                                String(reserva.estado).toLowerCase() !== "finalizada" && (
-                                                    <button
-                                                        className="btn btn-danger"
-                                                        onClick={() => cancelarReserva(reserva.id)}
-                                                    >
-                                                        Cancelar
-                                                    </button>
-                                                )}
+                                            {String(reserva.estado).toLowerCase() === "en progreso" && (
+                                                <button
+                                                    className="btn btn-primary"
+                                                    onClick={() => finalizarReserva(reserva.id)}
+                                                >
+                                                    Finalizar
+                                                </button>
+                                            )}
+
+                                            <button
+                                                className="btn btn-danger"
+                                                onClick={() => cancelarReserva(reserva.id)}
+                                            >
+                                                Cancelar
+                                            </button>
                                         </td>
                                     </tr>
                                 ))
                             ) : (
                                 <tr>
                                     <td colSpan="8">
-                                        No existen reservas activas.
+                                        No existen reservas activas o en progreso.
                                     </td>
                                 </tr>
                             )}
