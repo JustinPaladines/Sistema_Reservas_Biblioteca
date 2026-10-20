@@ -17,8 +17,7 @@ const GestionReservasBibliotecario = () => {
             const data = await api("/api/reservations");
             // se muestran solo las reservas que siguen activas
             setReservas(data.filter((reserva) => {
-                const estado = String(reserva.estado).toLowerCase();
-                return estado !== "cancelada" && estado !== "finalizada";
+                return String(reserva.estado).toLowerCase() === "activa";
             }));
         } catch (error) {
             console.error("Error cargando reservas:", error);
