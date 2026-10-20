@@ -207,6 +207,38 @@ router.put("/:id", async (req, res) => {
     }
 });
 
+// marcar la asistencia sin finalizar la reserva
+router.patch("/:id/attendance", async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const { data, error } = await supabaseAdmin
+            .from("reservas")
+            .update({
+                estado: "en progreso"
+            })
+            .eq("id", id)
+            .eq("estado", "activa")
+            .select();
+
+        if (error) {
+            return res.status(500).json({
+                mensaje: error.message
+            });
+        }
+
+        if (!data || data.length === 0) {
+            return res.status(404).json({
+                mensaje: "No se encontró una reserva activa para marcar la asistencia"
+            });
+        }
+
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ mensaje: error.message });
+    }
+});
+
 // Cancelar reserva
 router.patch("/:id/cancel", async (req, res) => {
     try {
