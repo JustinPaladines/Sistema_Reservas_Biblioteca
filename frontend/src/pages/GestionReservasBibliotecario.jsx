@@ -171,7 +171,7 @@ const GestionReservasBibliotecario = () => {
                                                 className="btn btn-secondary"
                                                 onClick={() => registrarInconveniente(reserva.id)}
                                             >
-                                                Inconveniente
+                                                Inconvenientes
                                             </button>
 
                                             <button
