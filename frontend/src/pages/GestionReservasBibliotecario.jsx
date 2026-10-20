@@ -58,19 +58,6 @@ const GestionReservasBibliotecario = () => {
         }
     };
 
-    const cancelarReserva = async (id) => {
-        if (!window.confirm("¿Cancelar reserva?")) return;
-
-        try {
-            await api(`/api/reservations/${id}/cancel`, {
-                method: "PATCH"
-            });
-            obtenerReservas();
-        } catch (error) {
-            alert(error.message);
-        }
-    };
-
     const confirmarReserva = async (id) => {
         try {
             await api(`/api/reservations/${id}/check-in`, {
