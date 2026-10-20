@@ -39,6 +39,25 @@ const GestionReservasBibliotecario = () => {
         }
     };
 
+    const registrarInconveniente = async (id) => {
+        const observacion = window.prompt("Escribe el inconveniente observado:");
+
+        if (observacion === null) return;
+
+        try {
+            await api(`/api/reservations/${id}/incident`, {
+                method: "PATCH",
+                body: JSON.stringify({
+                    inconvenientes: observacion.trim() || "Sin inconvenientes"
+                })
+            });
+            // se guarda la observación del bibliotecario
+            obtenerReservas();
+        } catch (error) {
+            alert(error.message);
+        }
+    };
+
     const cancelarReserva = async (id) => {
         if (!window.confirm("¿Cancelar reserva?")) return;
 
@@ -160,6 +179,13 @@ const GestionReservasBibliotecario = () => {
                                                     Finalizar
                                                 </button>
                                             )}
+
+                                            <button
+                                                className="btn btn-secondary"
+                                                onClick={() => registrarInconveniente(reserva.id)}
+                                            >
+                                                Inconveniente
+                                            </button>
 
                                             <button
                                                 className="btn btn-danger"
