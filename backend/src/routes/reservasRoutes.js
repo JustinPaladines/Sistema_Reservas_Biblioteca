@@ -239,6 +239,39 @@ router.patch("/:id/attendance", async (req, res) => {
     }
 });
 
+// guardar los inconvenientes observados en la reserva
+router.patch("/:id/incident", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const inconvenientes = String(req.body.inconvenientes || "").trim();
+
+        const { data, error } = await supabaseAdmin
+            .from("reservas")
+            .update({
+                inconvenientes: inconvenientes || "Sin inconvenientes"
+            })
+            .eq("id", id)
+            .in("estado", ["activa", "en progreso"])
+            .select();
+
+        if (error) {
+            return res.status(500).json({
+                mensaje: error.message
+            });
+        }
+
+        if (!data || data.length === 0) {
+            return res.status(404).json({
+                mensaje: "No se encontró una reserva activa o en progreso"
+            });
+        }
+
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ mensaje: error.message });
+    }
+});
+
 // Cancelar reserva
 router.patch("/:id/cancel", async (req, res) => {
     try {
@@ -247,7 +280,7 @@ router.patch("/:id/cancel", async (req, res) => {
         // obtener el espacio asociado a la reserva
         const { data: reserva, error: reservaError } = await supabaseAdmin
             .from("reservas")
-            .select("espacio_id")
+            .select("espacio_id, inconvenientes")
             .eq("id", id)
             .single();
 
@@ -318,6 +351,7 @@ router.patch("/:id/finish", async (req, res) => {
             .from("reservas")
             .update({
                 estado: "finalizado",
+                inconvenientes: reserva.inconvenientes?.trim() || "Sin inconvenientes",
                 finalizada_at: new Date().toISOString()
             })
             .eq("id", id)
