@@ -25,6 +25,7 @@ import GestionReservas from "./pages/GestionReservas";
 import MisReservas from "./pages/MisReservas";
 
 import GestionReservasBibliotecario from "./pages/GestionReservasBibliotecario";
+import EspaciosCompartidos from "./pages/EspaciosCompartidos";
 
 // buscar espacios
 import BuscarEspacios from "./pages/BuscarEspacios";
@@ -75,6 +76,7 @@ export default function App() {
       <Route element={<ProtectedRoute allowedRoles={['bibliotecario']} />}>
         <Route path="/bibliotecario/dashboard" element={<DashboardBibliotecario />} />
         <Route path="/bibliotecario/espacios" element={<GestionEspacios />} />
+        <Route path="/bibliotecario/espacios-compartidos" element={<EspaciosCompartidos />} />
         <Route path="/bibliotecario/reservas" element={<GestionReservasBibliotecario/>} />
         <Route path="/bibliotecario/estudiantes" element={<AtencionEstudiantes />}/>
       </Route>
