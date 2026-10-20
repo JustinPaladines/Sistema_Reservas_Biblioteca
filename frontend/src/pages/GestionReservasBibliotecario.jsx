@@ -26,6 +26,18 @@ const GestionReservasBibliotecario = () => {
         }
     };
 
+    const marcarAsistencia = async (id) => {
+        try {
+            await api(`/api/reservations/${id}/attendance`, {
+                method: "PATCH"
+            });
+            // se actualiza la lista cuando se registra la asistencia
+            obtenerReservas();
+        } catch (error) {
+            alert(error.message);
+        }
+    };
+
     const cancelarReserva = async (id) => {
         if (!window.confirm("¿Cancelar reserva?")) return;
 
@@ -129,26 +141,17 @@ const GestionReservasBibliotecario = () => {
                                         </td>
 
                                         <td>
-                                            {reserva.estado === "pendiente" && (
+                                            {String(reserva.estado).toLowerCase() === "activa" && (
                                                 <button
                                                     className="btn btn-success"
-                                                    onClick={() => confirmarReserva(reserva.id)}
+                                                    onClick={() => marcarAsistencia(reserva.id)}
                                                 >
-                                                    Confirmar
+                                                    Asistencia
                                                 </button>
                                             )}
 
-                                            {reserva.estado === "confirmada" && (
-                                                <button
-                                                    className="btn btn-primary"
-                                                    onClick={() => finalizarReserva(reserva.id)}
-                                                >
-                                                    Finalizar
-                                                </button>
-                                            )}
-
-                                            {reserva.estado !== "cancelada" &&
-                                                reserva.estado !== "finalizada" && (
+                                            {String(reserva.estado).toLowerCase() !== "cancelada" &&
+                                                String(reserva.estado).toLowerCase() !== "finalizada" && (
                                                     <button
                                                         className="btn btn-danger"
                                                         onClick={() => cancelarReserva(reserva.id)}
@@ -162,7 +165,7 @@ const GestionReservasBibliotecario = () => {
                             ) : (
                                 <tr>
                                     <td colSpan="8">
-                                        No existen reservas.
+                                        No existen reservas activas.
                                     </td>
                                 </tr>
                             )}
