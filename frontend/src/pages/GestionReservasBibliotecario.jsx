@@ -225,7 +225,7 @@ const GestionReservasBibliotecario = () => {
                                                         className="btn btn-success"
                                                         onClick={() => confirmarReserva(reserva.id)}
                                                     >
-                                                        Confirmar asistencia
+                                                        Confirmar Asistencia
                                                     </button>
                                                 )}
 
