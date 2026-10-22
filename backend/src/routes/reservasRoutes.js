@@ -70,7 +70,8 @@ router.post("/", async (req, res) => {
         }
 
         const ahora = new Date();
-        const inicioReserva = new Date(`${fecha}T${hora_inicio}:00`);
+        const horaParaValidar = String(hora_inicio).slice(0, 5);
+        const inicioReserva = new Date(`${fecha}T${horaParaValidar}:00-05:00`);
         if (Number.isNaN(inicioReserva.getTime()) || inicioReserva <= ahora) {
             return res.status(400).json({
                 mensaje: "La fecha y hora de la reserva deben ser futuras."
