@@ -14,8 +14,9 @@ const EspaciosCompartidos = () => {
 
     const obtenerEspacios = async () => {
         try {
-            const data = await api("/api/espacios");
-            setEspacios(data);
+            const [data, reservas] = await Promise.all([api("/api/espacios"), api("/api/reservations")]);
+            const idsReservados = new Set(reservas.filter((r) => ["activa", "en progreso"].includes(r.estado)).map((r) => String(r.espacio_id)));
+            setEspacios(data.filter((e) => !idsReservados.has(String(e.id))));
         } catch (error) {
             alert(error.message);
         } finally {
@@ -83,6 +84,7 @@ const EspaciosCompartidos = () => {
                                             <td>{ocupadas}</td>
                                             <td>{total - ocupadas}</td>
                                             <td>
+                                                <div className="acciones-tabla">
                                                 <button
                                                     className="btn btn-primary"
                                                     onClick={() => actualizarSillas(espacio.id, "ocupar")}
@@ -98,6 +100,7 @@ const EspaciosCompartidos = () => {
                                                 >
                                                     Liberar silla
                                                 </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     );

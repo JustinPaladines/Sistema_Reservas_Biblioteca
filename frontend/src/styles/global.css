@@ -184,3 +184,10 @@
     color:var(--text-secondary);
     font-style:italic;
 }
+
+/* Acciones en tablas: separación consistente y adaptable. */
+.acciones-reserva, .acciones-tabla { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:10px; min-width:190px; }
+.acciones-reserva .btn, .acciones-tabla .btn { margin:0; white-space:nowrap; }
+.btn:disabled { opacity:.55; cursor:not-allowed; transform:none; }
+.aviso-reserva-activa { margin:0; padding:12px 14px; border:1px solid #fbbf24; border-radius:8px; background:#fffbeb; color:#92400e; line-height:1.5; }
+@media (max-width:640px) { .page-container { padding:20px 14px; } .acciones-reserva,.acciones-tabla { min-width:150px; gap:8px; } .acciones-reserva .btn,.acciones-tabla .btn { padding:9px 12px; } }

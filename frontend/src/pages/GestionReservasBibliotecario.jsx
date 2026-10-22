@@ -55,30 +55,6 @@ const GestionReservasBibliotecario = () => {
         obtenerReservas({ buscar: "", estado: "" });
     };
 
-    const cancelarReserva = async (id) => {
-        if (!window.confirm("¿Cancelar reserva?")) return;
-
-        try {
-            await api(`/api/reservations/${id}/cancel`, {
-                method: "PATCH"
-            });
-            await obtenerReservas();
-        } catch (error) {
-            alert(error.message);
-        }
-    };
-
-    const confirmarReserva = async (id) => {
-        try {
-            await api(`/api/reservations/${id}/check-in`, {
-                method: "PATCH"
-            });
-            await obtenerReservas();
-        } catch (error) {
-            alert(error.message);
-        }
-    };
-
     const finalizarReserva = async (id) => {
         try {
             await api(`/api/reservations/${id}/finish`, {
@@ -219,13 +195,13 @@ const GestionReservasBibliotecario = () => {
                                         <td>{reserva.estado}</td>
                                         <td>{reserva.observacion || "Sin observación"}</td>
                                         <td>
-                                            <div className="page-actions">
+                                            <div className="acciones-reserva">
                                                 {reserva.estado === "activa" && (
                                                     <button
                                                         className="btn btn-success"
-                                                        onClick={() => confirmarReserva(reserva.id)}
+                                                        onClick={() => finalizarReserva(reserva.id)}
                                                     >
-                                                        Iniciar reserva
+                                                        Finalizar reserva
                                                     </button>
                                                 )}
 
@@ -234,19 +210,11 @@ const GestionReservasBibliotecario = () => {
                                                         className="btn btn-primary"
                                                         onClick={() => finalizarReserva(reserva.id)}
                                                     >
-                                                        Finalizar
+                                                        Finalizar reserva
                                                     </button>
                                                 )}
 
-                                                {reserva.estado !== "cancelada" &&
-                                                    reserva.estado !== "finalizada" && (
-                                                        <button
-                                                            className="btn btn-danger"
-                                                            onClick={() => cancelarReserva(reserva.id)}
-                                                        >
-                                                            Cancelar
-                                                        </button>
-                                                    )}
+                                                
 
                                                 <button
                                                     className="btn btn-success"

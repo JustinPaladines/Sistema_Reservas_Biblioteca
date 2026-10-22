@@ -16,23 +16,42 @@ router.get("/", async (req, res) => {
     res.json(data);
 });
 
-// obtener espacios disponibles para estudiantes
+// Obtener espacios disponibles y excluir los que tienen reservas vigentes.
 router.get("/available", async (req, res) => {
+    try {
+        const hoy = new Date().toISOString().slice(0, 10);
+        const { data: vencidas, error: vencidasError } = await supabaseAdmin
+            .from("reservas").select("id, espacio_id").eq("estado", "activa").lt("fecha", hoy);
+        if (vencidasError) return res.status(500).json({ mensaje: vencidasError.message });
+        for (const r of vencidas || []) {
+            await supabaseAdmin.from("reservas").update({ estado: "caducada" }).eq("id", r.id).eq("estado", "activa");
+            const { data: otras } = await supabaseAdmin.from("reservas").select("id")
+                .eq("espacio_id", r.espacio_id).in("estado", ["activa", "en progreso"]);
+            if (!otras || otras.length === 0) await supabaseAdmin.from("espacios").update({ estado: "disponible" }).eq("id", r.espacio_id);
+        }
+        const { data: todosEspacios, error: espaciosError } = await supabaseAdmin
+            .from("espacios").select("*").order("id", { ascending: true });
+        if (espaciosError) return res.status(500).json({ mensaje: espaciosError.message });
 
-    const { data, error } = await supabaseAdmin
-        .from("espacios")
-        .select("*")
-        .eq("estado", "disponible")
-        .order("id", { ascending: true });
+        const { data: reservas, error: errorReservas } = await supabaseAdmin.from("reservas")
+            .select("espacio_id").in("estado", ["activa", "en progreso"]);
+        if (errorReservas) return res.status(500).json({ mensaje: errorReservas.message });
 
+        const reservados = new Set((reservas || []).map((r) => String(r.espacio_id)));
+        for (const espacio of todosEspacios || []) {
+            if (espacio.estado === "ocupado" && !reservados.has(String(espacio.id))) {
+                const { error: liberarError } = await supabaseAdmin.from("espacios")
+                    .update({ estado: "disponible" }).eq("id", espacio.id);
+                if (!liberarError) espacio.estado = "disponible";
+            }
+        }
 
-    if (error) {
-        return res.status(500).json({
-            mensaje: error.message
-        });
+        return res.json((todosEspacios || []).filter((espacio) =>
+            espacio.estado === "disponible" && !reservados.has(String(espacio.id))
+        ));
+    } catch (error) {
+        return res.status(500).json({ mensaje: error.message });
     }
-
-    res.json(data);
 });
 
 router.post("/", async (req, res) => {
