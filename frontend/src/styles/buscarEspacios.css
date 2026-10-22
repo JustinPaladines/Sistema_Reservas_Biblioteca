@@ -1,0 +1,11 @@
+.filtros{
+    display:flex;
+    justify-content:center;
+    flex-wrap:wrap;
+    gap:15px;
+    margin-bottom:30px;
+}
+
+.filtros input{
+    width:220px;
+}
