@@ -18,21 +18,39 @@ router.get("/", async (req, res) => {
 
 // obtener espacios disponibles para estudiantes
 router.get("/available", async (req, res) => {
+    try {
+        const { data: espacios, error: espaciosError } = await supabaseAdmin
+            .from("espacios")
+            .select("*")
+            .eq("estado", "disponible")
+            .order("id", { ascending: true });
 
-    const { data, error } = await supabaseAdmin
-        .from("espacios")
-        .select("*")
-        .eq("estado", "disponible")
-        .order("id", { ascending: true });
+        if (espaciosError) {
+            return res.status(500).json({ mensaje: espaciosError.message });
+        }
 
+        if (!espacios?.length) return res.json([]);
 
-    if (error) {
-        return res.status(500).json({
-            mensaje: error.message
-        });
+        // ocultar espacios con reservas que todavía están vigentes
+        const { data: reservas, error: reservasError } = await supabaseAdmin
+            .from("reservas")
+            .select("espacio_id")
+            .in("estado", ["activa", "en progreso"]);
+
+        if (reservasError) {
+            return res.status(500).json({ mensaje: reservasError.message });
+        }
+
+        const espaciosReservados = new Set(
+            (reservas || []).map((reserva) => Number(reserva.espacio_id))
+        );
+
+        return res.json(
+            espacios.filter((espacio) => !espaciosReservados.has(Number(espacio.id)))
+        );
+    } catch (error) {
+        return res.status(500).json({ mensaje: error.message });
     }
-
-    res.json(data);
 });
 
 router.post("/", async (req, res) => {
