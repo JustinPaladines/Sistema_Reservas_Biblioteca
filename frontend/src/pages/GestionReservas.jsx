@@ -96,6 +96,7 @@ const GestionReservas = () => {
         setEspacioId("");
         setFecha("");
         setHoraInicio("");
+        await obtenerEspacios();
         }catch(error){
         console.error(error);
         alert(
