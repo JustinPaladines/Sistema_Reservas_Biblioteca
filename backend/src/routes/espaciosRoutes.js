@@ -3,6 +3,56 @@ const express = require("express");
 const router = express.Router();
 const { supabaseAdmin } = require("../supabaseClients");
 
+// caducar reservas que no fueron confirmadas dentro de los 15 minutos posteriores a su inicio
+async function caducarReservasVencidas() {
+    const { data: reservas, error } = await supabaseAdmin
+        .from("reservas")
+        .select("id, espacio_id, fecha, hora_inicio")
+        .eq("estado", "activa");
+
+    if (error) throw error;
+
+    const ahora = Date.now();
+    const margen = 15 * 60 * 1000;
+
+    for (const reserva of reservas || []) {
+        const hora = String(reserva.hora_inicio || "").slice(0, 8);
+        const horaCompleta = hora.length === 5 ? `${hora}:00` : hora;
+        const inicio = new Date(`${reserva.fecha}T${horaCompleta}-05:00`).getTime();
+
+        if (!Number.isFinite(inicio) || ahora <= inicio + margen) continue;
+
+        const { data: actualizada, error: actualizarError } = await supabaseAdmin
+            .from("reservas")
+            .update({ estado: "caducada", finalizada_at: new Date().toISOString() })
+            .eq("id", reserva.id)
+            .eq("estado", "activa")
+            .select("id")
+            .maybeSingle();
+
+        if (actualizarError) throw actualizarError;
+        if (!actualizada) continue;
+
+        const { data: otrasReservas, error: otrasError } = await supabaseAdmin
+            .from("reservas")
+            .select("id")
+            .eq("espacio_id", reserva.espacio_id)
+            .in("estado", ["activa", "en progreso"])
+            .limit(1);
+
+        if (otrasError) throw otrasError;
+
+        if (!otrasReservas?.length) {
+            const { error: liberarError } = await supabaseAdmin
+                .from("espacios")
+                .update({ estado: "disponible" })
+                .eq("id", reserva.espacio_id);
+
+            if (liberarError) throw liberarError;
+        }
+    }
+}
+
 router.get("/", async (req, res) => {
     const { data, error } = await supabaseAdmin
         .from("espacios")
@@ -19,6 +69,7 @@ router.get("/", async (req, res) => {
 // obtener espacios disponibles para estudiantes
 router.get("/available", async (req, res) => {
     try {
+        await caducarReservasVencidas();
         const { data: espacios, error: espaciosError } = await supabaseAdmin
             .from("espacios")
             .select("*")
