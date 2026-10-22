@@ -6,6 +6,7 @@ import "../styles/global.css";
 const EspaciosCompartidos = () => {
     const navigate = useNavigate();
     const [espacios, setEspacios] = useState([]);
+    const [reservados, setReservados] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -14,8 +15,14 @@ const EspaciosCompartidos = () => {
 
     const obtenerEspacios = async () => {
         try {
-            const data = await api("/api/espacios");
+            const [data, reservas] = await Promise.all([
+                api("/api/espacios"),
+                api("/api/reservations")
+            ]);
             setEspacios(data);
+            setReservados((reservas || [])
+                .filter((reserva) => ["activa", "en progreso"].includes(reserva.estado))
+                .map((reserva) => Number(reserva.espacio_id)));
         } catch (error) {
             alert(error.message);
         } finally {
@@ -35,6 +42,10 @@ const EspaciosCompartidos = () => {
             alert(error.message);
         }
     };
+
+    const espaciosVisibles = espacios.filter((espacio) =>
+        espacio.estado === "disponible" && !reservados.includes(Number(espacio.id))
+    );
 
     const totalSillas = espacios.reduce((total, espacio) => total + Number(espacio.capacidad || 0), 0);
     const sillasOcupadas = espacios.reduce((total, espacio) => total + Number(espacio.sillas_ocupadas_externas || 0), 0);
@@ -72,7 +83,7 @@ const EspaciosCompartidos = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {espacios.map((espacio) => {
+                                {espaciosVisibles.map((espacio) => {
                                     const total = Number(espacio.capacidad || 0);
                                     const ocupadas = Number(espacio.sillas_ocupadas_externas || 0);
 
@@ -102,9 +113,9 @@ const EspaciosCompartidos = () => {
                                         </tr>
                                     );
                                 })}
-                                {espacios.length === 0 && (
+                                {espaciosVisibles.length === 0 && (
                                     <tr>
-                                        <td colSpan="5">No existen espacios registrados.</td>
+                                        <td colSpan="5">No hay espacios compartidos disponibles en este momento.</td>
                                     </tr>
                                 )}
                             </tbody>
