@@ -219,13 +219,13 @@ const GestionReservasBibliotecario = () => {
                                         <td>{reserva.estado}</td>
                                         <td>{reserva.observacion || "Sin observación"}</td>
                                         <td>
-                                            <div className="page-actions">
+                                            <div className="acciones-reserva">
                                                 {reserva.estado === "activa" && (
                                                     <button
                                                         className="btn btn-success"
                                                         onClick={() => confirmarReserva(reserva.id)}
                                                     >
-                                                        Iniciar reserva
+                                                        Confirmar asistencia
                                                     </button>
                                                 )}
 
@@ -237,16 +237,6 @@ const GestionReservasBibliotecario = () => {
                                                         Finalizar
                                                     </button>
                                                 )}
-
-                                                {reserva.estado !== "cancelada" &&
-                                                    reserva.estado !== "finalizada" && (
-                                                        <button
-                                                            className="btn btn-danger"
-                                                            onClick={() => cancelarReserva(reserva.id)}
-                                                        >
-                                                            Cancelar
-                                                        </button>
-                                                    )}
 
                                                 <button
                                                     className="btn btn-success"
