@@ -1,0 +1,166 @@
+/* src/styles/perfil.css */
+
+/* CONTENEDOR RAIZ: Configura toda la pantalla de fondo con el gradiente oficial */
+.perfil-pagina-container {
+  width: 100vw;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;   
+  justify-content: center;    
+  background: linear-gradient(135deg, #22C55E 0%, #7C3AED 100%); 
+  box-sizing: border-box;
+  margin: 0;
+  padding: 80px 20px;
+  font-family: system-ui, -apple-system, sans-serif;
+  position: absolute;          
+  left: 0;
+  top: 0;
+  position: relative;
+}
+
+/* OCULTACIÓN: Esconde el h1 por defecto para usar un diseño personalizado */
+.perfil-pagina-container h1 {
+  display: none;
+}
+
+/* TARJETA DE PERFIL: Diseño flotante blanco que envuelve los datos del usuario */
+.perfil-pagina-container div:has(> img[alt="Perfil"]) {
+  width: 100%;
+  max-width: 440px;
+  background-color: #FFFFFF; 
+  border-radius: 24px;
+  box-shadow: 0 10px 30px rgba(30, 41, 59, 0.08);
+  padding: 40px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+  margin: 0 auto; 
+}
+
+/* AVATAR: Estilos de la fotografía de perfil circular */
+.perfil-pagina-container img[alt="Perfil"] {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  object-fit: cover;
+  background-color: #EDE9FE;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.1);
+}
+
+/* NOMBRE DE USUARIO: Formato de título para el primer párrafo con el nombre */
+.perfil-pagina-container div:has(> img[alt="Perfil"]) > p:first-of-type {
+  color: #1E293B; 
+  font-size: 28px;
+  font-weight: 700;
+  margin-top: 0;
+  margin-bottom: 24px;
+  text-align: center;
+  width: 100%;
+  background: none !important; 
+  border: none !important;
+  padding: 0 !important;
+}
+
+/* BLOQUES DE INFORMACIÓN: Cajas grises individuales para mostrar Correo, Rol, etc. */
+.perfil-pagina-container div:has(> img[alt="Perfil"]) > p {
+  width: 100%;
+  background-color: #F8FAFC; 
+  border: 1px solid #E2E8F0; 
+  padding: 14px 16px;
+  margin: 6px 0;
+  border-radius: 12px;
+  font-size: 15px;
+  color: #1E293B;
+  font-weight: 500;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+/* BOTONES DE ACCIÓN: Estilos generales del botón verde e interacciones */
+.perfil-pagina-container button {
+  width: 100%;
+  padding: 14px;
+  background-color: #22C55E; 
+  color: #FFFFFF;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 20px;
+  transition: background-color 0.2s;
+}
+
+.perfil-pagina-container button:hover {
+  background-color: #16A34A; 
+}
+
+/* BARRA SUPERIOR: Posiciona el botón transparente de salida/logout */
+.perfil-pagina-container .top-bar {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  width: auto;
+  z-index: 10;
+}
+
+.perfil-pagina-container .top-bar button {
+  width: auto;
+  padding: 10px 20px;
+  background-color: rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(8px);
+  margin-top: 0;
+}
+
+.perfil-pagina-container .top-bar button:hover {
+  background-color: #EF4444; 
+  border-color: #EF4444;
+}
+
+/* FORMULARIO DE EDICIÓN: Estilos para la sección inferior que permite cambiar datos */
+.perfil-pagina-container div:has(> h2) {
+  width: 100%;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px dashed #E2E8F0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.perfil-pagina-container div:has(> h2) h2 {
+  display: block !important; 
+  font-size: 20px;
+  color: #7C3AED; 
+  margin: 0 0 8px 0;
+  text-align: center;
+}
+
+.perfil-pagina-container div:has(> h2) label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1E293B;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.perfil-pagina-container div:has(> h2) input {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 15px;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  color: #1E293B;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.perfil-pagina-container div:has(> h2) input:focus {
+  border-color: #7C3AED;
+  box-shadow: 0 0 0 3px #EDE9FE;
+}

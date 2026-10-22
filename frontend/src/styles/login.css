@@ -1,0 +1,93 @@
+/* src/styles/login.css */
+
+/* VARIABLES GLOBALES: Paleta de colores reutilizables en todo el archivo */
+:root {
+  --verde-principal: #22C55E;
+  --verde-hover: #16A34A;
+  --morado-principal: #7C3AED;
+  --morado-pastel: #EDE9FE;
+  --fondo-principal: #ffffff;
+  --blanco-cards: #FFFFFF;
+  --texto-principal: #1E293B;
+  --texto-secundario: #64748B;
+  --bordes: #fdfdfd;
+  
+  /* Colores para mensajes de éxito o error */
+  --alerta-exito-bg: #DCFCE7;
+  --alerta-exito-texto: #14532D;
+  --alerta-error-bg: #FEE2E2;
+  --alerta-error-texto: #991B1B;
+}
+
+/* RESETEO GENERAL: Quita márgenes por defecto y ajusta el cálculo de tamaños */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ENTORNO GLOBAL: Asegura que la aplicación use toda la pantalla disponible */
+html, body, #root {
+  height: 100vh;
+  width: 100vw;
+  margin: 0;
+  padding: 0;
+}
+
+/* CONTENEDOR GENERAL: Divide la pantalla en dos secciones principales (izquierda y derecha) */
+.login-page-container {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  overflow: hidden
+}
+
+/* SECCIÓN IZQUIERDA: Bloque destinado a contener el formulario de login */
+.login-left {
+  width: 45%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  background-color: #f3f1f8 !important; 
+}
+
+/* SECCIÓN DERECHA: Bloque destinado a la ilustración o imagen de fondo */
+.login-right {
+  width: 55%; 
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #FFFFFF !important; 
+  padding: 0 !important; 
+  overflow: hidden;
+}
+
+/* DISEÑO RESPONSIVO: Adaptación visual automática para pantallas pequeñas o celulares */
+@media (max-width: 900px) {
+  html, body, #root {
+    overflow: auto;
+  }
+
+  .login-page-container {
+    flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+    width: 100vw;
+  }
+
+  .login-left {
+    width: 100%;
+    min-height: 100vh;
+    padding: 30px 20px;
+  }
+
+  .login-right {
+    display: none;
+  }
+}
