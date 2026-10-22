@@ -53,7 +53,7 @@ router.use(verificarPersonalAutorizado);
 
 router.get("/reservas", async (req, res) => {
     try {
-        const { buscar, estado, fecha } = req.query;
+        const { buscar, estado } = req.query;
 
         let query = supabaseAdmin
             .from("reservas")
@@ -69,12 +69,13 @@ router.get("/reservas", async (req, res) => {
             `)
             .order("id", { ascending: false });
 
-        if (estado) {
+        if (req.usuario.rol === "bibliotecario") {
+            query = query.in("estado", ["activa", "en progreso"]);
+            if (estado && ["activa", "en progreso"].includes(estado)) {
+                query = query.eq("estado", estado);
+            }
+        } else if (estado) {
             query = query.eq("estado", estado);
-        }
-
-        if (fecha) {
-            query = query.eq("fecha", fecha);
         }
 
         const { data: reservas, error } = await query;
@@ -147,7 +148,7 @@ router.get("/reservas", async (req, res) => {
         if (espaciosIds.length > 0) {
             const { data } = await supabaseAdmin
                 .from("espacios")
-                .select("id, nombre, ubicacion, biblioteca")
+                .select("id, nombre, ubicacion")
                 .in("id", espaciosIds);
 
             espacios = data || [];

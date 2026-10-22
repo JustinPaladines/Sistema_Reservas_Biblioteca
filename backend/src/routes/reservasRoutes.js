@@ -207,6 +207,31 @@ router.put("/:id", async (req, res) => {
     }
 });
 
+// iniciar una reserva activa
+router.patch("/:id/check-in", async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const { data, error } = await supabaseAdmin
+            .from("reservas")
+            .update({ estado: "en progreso" })
+            .eq("id", id)
+            .eq("estado", "activa")
+            .select()
+            .single();
+
+        if (error || !data) {
+            return res.status(400).json({
+                mensaje: error?.message || "La reserva no está activa o no existe."
+            });
+        }
+
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ mensaje: error.message });
+    }
+});
+
 // Cancelar reserva
 router.patch("/:id/cancel", async (req, res) => {
     try {

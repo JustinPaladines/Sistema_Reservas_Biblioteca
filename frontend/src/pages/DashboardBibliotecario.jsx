@@ -5,7 +5,6 @@ import UserMenu from "../components/UserMenu";
 const DashboardBibliotecario = () => {
     const navigate = useNavigate();
     const modulos = [
-        {titulo: "Gestión de espacios", desc: "Ver espacios disponibles y reportar mantenimientos o daños.", ruta: "/bibliotecario/espacios"},
         {titulo: "Espacios compartidos", desc: "Consultar las sillas y actualizar su disponibilidad temporal.", ruta: "/bibliotecario/espacios-compartidos"},
         {titulo: "Gestión de Reservas", desc: "Buscar y filtrar reservas, gestionar su estado y registrar incidentes.", ruta: "/bibliotecario/reservas"}
     ];

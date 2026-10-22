@@ -68,7 +68,6 @@ export default function App() {
       {/* bibliotecario */}
       <Route element={<ProtectedRoute allowedRoles={['bibliotecario']} />}>
         <Route path="/bibliotecario/dashboard" element={<DashboardBibliotecario />} />
-        <Route path="/bibliotecario/espacios" element={<GestionEspacios />} />
         <Route path="/bibliotecario/espacios-compartidos" element={<EspaciosCompartidos />} />
         <Route path="/bibliotecario/reservas" element={<GestionReservasBibliotecario />} />
       </Route>

@@ -25,7 +25,7 @@ const EspaciosCompartidos = () => {
 
     const actualizarSillas = async (id, accion) => {
         try {
-            await api(`/api/espacios/${id}/sillas-externas`, {
+            await api(`/api/espacios/${id}/sillas-compartidas`, {
                 method: "PATCH",
                 body: JSON.stringify({ accion })
             });

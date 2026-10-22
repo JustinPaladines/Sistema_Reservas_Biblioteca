@@ -1,16 +1,17 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import "../styles/global.css";
 
 const GestionReservasBibliotecario = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+    const esBibliotecario = location.pathname.startsWith("/bibliotecario/");
 
     const [reservas, setReservas] = useState([]);
     const [loading, setLoading] = useState(true);
     const [buscar, setBuscar] = useState("");
     const [estado, setEstado] = useState("");
-    const [fecha, setFecha] = useState("");
     const [reservaSeleccionada, setReservaSeleccionada] = useState(null);
     const [observacion, setObservacion] = useState("");
 
@@ -25,7 +26,6 @@ const GestionReservasBibliotecario = () => {
             const parametros = new URLSearchParams();
             const textoBuscar = filtros.buscar ?? buscar;
             const estadoSeleccionado = filtros.estado ?? estado;
-            const fechaSeleccionada = filtros.fecha ?? fecha;
 
             if (textoBuscar.trim()) {
                 parametros.append("buscar", textoBuscar.trim());
@@ -33,10 +33,6 @@ const GestionReservasBibliotecario = () => {
 
             if (estadoSeleccionado) {
                 parametros.append("estado", estadoSeleccionado);
-            }
-
-            if (fechaSeleccionada) {
-                parametros.append("fecha", fechaSeleccionada);
             }
 
             const query = parametros.toString();
@@ -56,8 +52,7 @@ const GestionReservasBibliotecario = () => {
     const limpiarFiltros = () => {
         setBuscar("");
         setEstado("");
-        setFecha("");
-        obtenerReservas({ buscar: "", estado: "", fecha: "" });
+        obtenerReservas({ buscar: "", estado: "" });
     };
 
     const cancelarReserva = async (id) => {
@@ -162,19 +157,20 @@ const GestionReservasBibliotecario = () => {
                     onChange={(e) => setEstado(e.target.value)}
                 >
                     <option value="">Todos los estados</option>
-                    <option value="activa">Activa</option>
-                    <option value="pendiente">Pendiente</option>
-                    <option value="confirmada">Confirmada</option>
-                    <option value="cancelada">Cancelada</option>
-                    <option value="finalizada">Finalizada</option>
+                    {esBibliotecario ? (
+                        <>
+                            <option value="activa">Activa</option>
+                            <option value="en progreso">En progreso</option>
+                        </>
+                    ) : (
+                        <>
+                            <option value="activa">Activa</option>
+                            <option value="en progreso">En progreso</option>
+                            <option value="finalizada">Finalizada</option>
+                            <option value="caducada">Caducada</option>
+                        </>
+                    )}
                 </select>
-
-                <input
-                    className="form-input"
-                    type="date"
-                    value={fecha}
-                    onChange={(e) => setFecha(e.target.value)}
-                />
 
                 <button
                     className="btn btn-primary"
@@ -218,23 +214,22 @@ const GestionReservasBibliotecario = () => {
                                         <td>{reserva.usuario?.nombre || reserva.usuario_nombre || "Sin usuario"}</td>
                                         <td>{reserva.usuario?.correo || reserva.usuario_correo || "Sin correo"}</td>
                                         <td>{reserva.espacio?.nombre || reserva.espacio_nombre || reserva.espacio_id}</td>
-                                        <td>{reserva.espacio?.ubicacion || reserva.espacio_ubicacion || "Sin ubicación"}</td>
                                         <td>{reserva.fecha}</td>
                                         <td>{reserva.hora_inicio}</td>
                                         <td>{reserva.estado}</td>
                                         <td>{reserva.observacion || "Sin observación"}</td>
                                         <td>
                                             <div className="page-actions">
-                                                {reserva.estado === "pendiente" && (
+                                                {reserva.estado === "activa" && (
                                                     <button
                                                         className="btn btn-success"
                                                         onClick={() => confirmarReserva(reserva.id)}
                                                     >
-                                                        Confirmar
+                                                        Iniciar reserva
                                                     </button>
                                                 )}
 
-                                                {reserva.estado === "confirmada" && (
+                                                {reserva.estado === "en progreso" && (
                                                     <button
                                                         className="btn btn-primary"
                                                         onClick={() => finalizarReserva(reserva.id)}
@@ -265,7 +260,7 @@ const GestionReservasBibliotecario = () => {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="10">No se encontraron reservas.</td>
+                                    <td colSpan="9">No se encontraron reservas.</td>
                                 </tr>
                             )}
                         </tbody>
