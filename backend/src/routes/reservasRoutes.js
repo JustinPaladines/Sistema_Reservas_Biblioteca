@@ -3,15 +3,141 @@ const express = require("express");
 const router = express.Router();
 const { supabaseAdmin } = require("../supabaseClients");
 
-// Crear reserva
+// crear una reserva y validar disponibilidad, usuario y horario
 router.post("/", async (req, res) => {
     try {
-        const {
-            usuario_id,
-            espacio_id,
-            fecha,
-            hora_inicio,
-        } = req.body;
+        const { usuario_id, espacio_id, fecha, hora_inicio } = req.body;
+
+        if (!usuario_id || !espacio_id || !fecha || !hora_inicio) {
+            return res.status(400).json({
+                mensaje: "Debe seleccionar un espacio, una fecha y una hora."
+            });
+        }
+
+        const ahora = new Date();
+        const inicioReserva = new Date(`${fecha}T${hora_inicio}:00`);
+        if (Number.isNaN(inicioReserva.getTime()) || inicioReserva <= ahora) {
+            return res.status(400).json({
+                mensaje: "La fecha y hora de la reserva deben ser futuras."
+            });
+        }
+
+        const { data: usuario, error: usuarioError } = await supabaseAdmin
+            .from("usuarios")
+            .select("id, rol, estado")
+            .eq("id", usuario_id)
+            .maybeSingle();
+
+        if (usuarioError || !usuario || usuario.rol !== "estudiante" || usuario.estado !== "activo") {
+            return res.status(403).json({
+                mensaje: "Solo un estudiante activo puede realizar reservas."
+            });
+        }
+
+        const { data: reservaUsuario, error: reservaUsuarioError } = await supabaseAdmin
+            .from("reservas")
+            .select("id, estado, fecha, hora_inicio")
+            .eq("usuario_id", usuario_id)
+            .in("estado", ["activa", "en progreso"])
+            .limit(1);
+
+        if (reservaUsuarioError) {
+            return res.status(500).json({ mensaje: reservaUsuarioError.message });
+        }
+
+        if (reservaUsuario?.length) {
+            return res.status(409).json({
+                mensaje: "Ya tienes una reserva activa. Finalízala antes de crear otra."
+            });
+        }
+
+        const { data: espacio, error: espacioConsultaError } = await supabaseAdmin
+            .from("espacios")
+            .select("id, nombre, estado, biblioteca")
+            .eq("id", espacio_id)
+            .maybeSingle();
+
+        if (espacioConsultaError) {
+            return res.status(500).json({ mensaje: espacioConsultaError.message });
+        }
+
+        if (!espacio) {
+            return res.status(404).json({ mensaje: "El espacio seleccionado no existe." });
+        }
+
+        if (espacio.estado !== "disponible") {
+            return res.status(409).json({
+                mensaje: "Este espacio ya no está disponible. Selecciona otro."
+            });
+        }
+
+        const { data: reservaEspacio, error: reservaEspacioError } = await supabaseAdmin
+            .from("reservas")
+            .select("id")
+            .eq("espacio_id", espacio_id)
+            .in("estado", ["activa", "en progreso"])
+            .limit(1);
+
+        if (reservaEspacioError) {
+            return res.status(500).json({ mensaje: reservaEspacioError.message });
+        }
+
+        if (reservaEspacio?.length) {
+            return res.status(409).json({
+                mensaje: "Este espacio ya tiene una reserva vigente."
+            });
+        }
+
+        const { data: biblioteca, error: bibliotecaError } = await supabaseAdmin
+            .from("bibliotecas")
+            .select("nombre, horario_apertura, horario_cierre, estado")
+            .ilike("nombre", espacio.biblioteca || "")
+            .maybeSingle();
+
+        if (bibliotecaError) {
+            return res.status(500).json({ mensaje: bibliotecaError.message });
+        }
+
+        if (!biblioteca) {
+            return res.status(400).json({
+                mensaje: "No se encontró el horario de la biblioteca de este espacio."
+            });
+        }
+
+        if (biblioteca.estado && !["activa", "activo"].includes(biblioteca.estado.toLowerCase())) {
+            return res.status(400).json({
+                mensaje: "La biblioteca no está habilitada para reservas."
+            });
+        }
+
+        const horaSolicitada = String(hora_inicio).slice(0, 5);
+        const apertura = String(biblioteca.horario_apertura || "").slice(0, 5);
+        const cierre = String(biblioteca.horario_cierre || "").slice(0, 5);
+
+        if (!apertura || !cierre || horaSolicitada < apertura || horaSolicitada >= cierre) {
+            return res.status(400).json({
+                mensaje: `La reserva debe iniciar dentro del horario de atención de la biblioteca (${apertura || "sin definir"} a ${cierre || "sin definir"}).`
+            });
+        }
+
+        // reservar el espacio solo si continúa disponible
+        const { data: espacioOcupado, error: ocuparError } = await supabaseAdmin
+            .from("espacios")
+            .update({ estado: "ocupado" })
+            .eq("id", espacio_id)
+            .eq("estado", "disponible")
+            .select("id")
+            .maybeSingle();
+
+        if (ocuparError) {
+            return res.status(500).json({ mensaje: ocuparError.message });
+        }
+
+        if (!espacioOcupado) {
+            return res.status(409).json({
+                mensaje: "Otro usuario acaba de reservar este espacio. Actualiza la lista."
+            });
+        }
 
         const { data, error } = await supabaseAdmin
             .from("reservas")
@@ -20,32 +146,21 @@ router.post("/", async (req, res) => {
                 espacio_id,
                 fecha,
                 hora_inicio,
-                estado: "activa",
+                estado: "activa"
             }])
             .select();
 
         if (error) {
+            await supabaseAdmin
+                .from("espacios")
+                .update({ estado: "disponible" })
+                .eq("id", espacio_id);
             return res.status(500).json({ mensaje: error.message });
         }
-        // cambiar estado del espacio a "ocupado"
-        const { error: espacioError } = await supabaseAdmin
-            .from("espacios")
-            .update({
-                estado: "ocupado"
-            })
-            .eq("id", espacio_id);
 
-        // si falla la actualización del espacio, es un error del servidor
-        if (espacioError) {
-            console.error("Error al actualizar el espacio:", espacioError);
-            return res.status(500).json({ mensaje: espacioError.message });
-        }
-
-        // respuesta exitosa
-        res.status(201).json(data);
-
+        return res.status(201).json(data);
     } catch (error) {
-        res.status(500).json({ mensaje: error.message });
+        return res.status(500).json({ mensaje: error.message });
     }
 });
 
