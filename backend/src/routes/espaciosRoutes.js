@@ -42,27 +42,7 @@ async function caducarReservasVencidas() {
 
         if (otrasError) throw otrasError;
 
-        const { data: espacioActual, error: espacioError } = await supabaseAdmin
-            .from("espacios")
-            .select("sillas_ocupadas_externas")
-            .eq("id", reserva.espacio_id)
-            .maybeSingle();
 
-        if (espacioError) throw espacioError;
-
-        if (espacioActual) {
-            const { error: sillasError } = await supabaseAdmin
-                .from("espacios")
-                .update({
-                    sillas_ocupadas_externas: Math.max(
-                        0,
-                        Number(espacioActual.sillas_ocupadas_externas || 0) - Number(reserva.cantidad_estudiantes || 1)
-                    )
-                })
-                .eq("id", reserva.espacio_id);
-
-            if (sillasError) throw sillasError;
-        }
     }
 
     const { data: reservasTerminadas, error: terminadasError } = await supabaseAdmin
