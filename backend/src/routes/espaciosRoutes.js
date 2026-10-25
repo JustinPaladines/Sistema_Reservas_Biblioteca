@@ -96,16 +96,22 @@ async function caducarReservasVencidas() {
 }
 
 router.get("/", async (req, res) => {
-    const { data, error } = await supabaseAdmin
-        .from("espacios")
-        .select("*")
-        .order("id", { ascending: true });
+    try {
+        await caducarReservasVencidas();
 
-    if (error) {
-        return res.status(500).json({ mensaje: error.message });
+        const { data, error } = await supabaseAdmin
+            .from("espacios")
+            .select("*")
+            .order("id", { ascending: true });
+
+        if (error) {
+            return res.status(500).json({ mensaje: error.message });
+        }
+
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ mensaje: error.message });
     }
-
-    res.json(data);
 });
 
 // obtener espacios disponibles para estudiantes
