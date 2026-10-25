@@ -7,7 +7,7 @@ const { supabaseAdmin } = require("../supabaseClients");
 async function caducarReservasVencidas() {
     const { data: reservas, error } = await supabaseAdmin
         .from("reservas")
-        .select("id, espacio_id, fecha, hora_inicio")
+        .select("id, espacio_id, fecha, hora_inicio, cantidad_estudiantes")
         .eq("estado", "activa");
 
     if (error) throw error;
@@ -45,13 +45,24 @@ async function caducarReservasVencidas() {
 
         if (otrasError) throw otrasError;
 
-        if (!otrasReservas?.length) {
-            const { error: liberarError } = await supabaseAdmin
+        const { data: espacio, error: espacioError } = await supabaseAdmin
+            .from("espacios")
+            .select("sillas_ocupadas_externas")
+            .eq("id", reserva.espacio_id)
+            .maybeSingle();
+
+        if (espacioError) throw espacioError;
+
+        if (espacio) {
+            const cantidad = Number(reserva.cantidad_estudiantes || 1);
+            const { error: sillasError } = await supabaseAdmin
                 .from("espacios")
-                .update({ estado: "disponible" })
+                .update({
+                    sillas_ocupadas_externas: Math.max(0, Number(espacio.sillas_ocupadas_externas || 0) - cantidad)
+                })
                 .eq("id", reserva.espacio_id);
 
-            if (liberarError) throw liberarError;
+            if (sillasError) throw sillasError;
         }
     }
 }
@@ -61,17 +72,33 @@ router.post("/", async (req, res) => {
     try {
         await caducarReservasVencidas();
 
-        const { usuario_id, espacio_id, fecha, hora_inicio } = req.body;
+        const {
+            usuario_id,
+            espacio_id,
+            fecha,
+            hora_inicio,
+            hora_fin,
+            cantidad_estudiantes
+        } = req.body;
 
-        if (!usuario_id || !espacio_id || !fecha || !hora_inicio) {
+        const cantidad = Number(cantidad_estudiantes);
+        const inicio = String(hora_inicio || "").slice(0, 5);
+        const fin = String(hora_fin || "").slice(0, 5);
+
+        if (!usuario_id || !espacio_id || !fecha || !inicio || !fin || !Number.isInteger(cantidad) || cantidad < 1) {
             return res.status(400).json({
-                mensaje: "Debe seleccionar un espacio, una fecha y una hora."
+                mensaje: "Debe indicar el espacio, la fecha, la hora de inicio, la hora de fin y una cantidad válida de estudiantes."
+            });
+        }
+
+        if (fin <= inicio) {
+            return res.status(400).json({
+                mensaje: "La hora de fin debe ser posterior a la hora de inicio."
             });
         }
 
         const ahora = new Date();
-        const horaParaValidar = String(hora_inicio).slice(0, 5);
-        const inicioReserva = new Date(`${fecha}T${horaParaValidar}:00-05:00`);
+        const inicioReserva = new Date(`${fecha}T${inicio}:00-05:00`);
         if (Number.isNaN(inicioReserva.getTime()) || inicioReserva <= ahora) {
             return res.status(400).json({
                 mensaje: "La fecha y hora de la reserva deben ser futuras."
@@ -92,7 +119,7 @@ router.post("/", async (req, res) => {
 
         const { data: reservaUsuario, error: reservaUsuarioError } = await supabaseAdmin
             .from("reservas")
-            .select("id, estado, fecha, hora_inicio")
+            .select("id")
             .eq("usuario_id", usuario_id)
             .in("estado", ["activa", "en progreso"])
             .limit(1);
@@ -109,7 +136,7 @@ router.post("/", async (req, res) => {
 
         const { data: espacio, error: espacioConsultaError } = await supabaseAdmin
             .from("espacios")
-            .select("id, nombre, estado, biblioteca")
+            .select("id, nombre, estado, biblioteca_id, capacidad, sillas_ocupadas_externas")
             .eq("id", espacio_id)
             .maybeSingle();
 
@@ -121,33 +148,22 @@ router.post("/", async (req, res) => {
             return res.status(404).json({ mensaje: "El espacio seleccionado no existe." });
         }
 
-        if (espacio.estado !== "disponible") {
+        if (espacio.estado === "mantenimiento") {
             return res.status(409).json({
-                mensaje: "Este espacio ya no está disponible. Selecciona otro."
+                mensaje: "Este espacio está en mantenimiento. Selecciona otro."
             });
         }
 
-        const { data: reservaEspacio, error: reservaEspacioError } = await supabaseAdmin
-            .from("reservas")
-            .select("id")
-            .eq("espacio_id", espacio_id)
-            .in("estado", ["activa", "en progreso"])
-            .limit(1);
-
-        if (reservaEspacioError) {
-            return res.status(500).json({ mensaje: reservaEspacioError.message });
-        }
-
-        if (reservaEspacio?.length) {
-            return res.status(409).json({
-                mensaje: "Este espacio ya tiene una reserva vigente."
+        if (cantidad > Number(espacio.capacidad)) {
+            return res.status(400).json({
+                mensaje: "La cantidad de estudiantes supera la capacidad del espacio."
             });
         }
 
         const { data: biblioteca, error: bibliotecaError } = await supabaseAdmin
             .from("bibliotecas")
             .select("nombre, horario_apertura, horario_cierre, estado")
-            .ilike("nombre", espacio.biblioteca || "")
+            .eq("id", espacio.biblioteca_id)
             .maybeSingle();
 
         if (bibliotecaError) {
@@ -166,32 +182,42 @@ router.post("/", async (req, res) => {
             });
         }
 
-        const horaSolicitada = String(hora_inicio).slice(0, 5);
         const apertura = String(biblioteca.horario_apertura || "").slice(0, 5);
         const cierre = String(biblioteca.horario_cierre || "").slice(0, 5);
 
-        if (!apertura || !cierre || horaSolicitada < apertura || horaSolicitada >= cierre) {
+        if (!apertura || !cierre || inicio < apertura || fin > cierre) {
             return res.status(400).json({
-                mensaje: `La reserva debe iniciar dentro del horario de atención de la biblioteca (${apertura || "sin definir"} a ${cierre || "sin definir"}).`
+                mensaje: `La reserva debe estar dentro del horario de atención de la biblioteca (${apertura || "sin definir"} a ${cierre || "sin definir"}).`
             });
         }
 
-        // reservar el espacio solo si continúa disponible
-        const { data: espacioOcupado, error: ocuparError } = await supabaseAdmin
-            .from("espacios")
-            .update({ estado: "ocupado" })
-            .eq("id", espacio_id)
-            .eq("estado", "disponible")
-            .select("id")
-            .maybeSingle();
+        const { data: reservasEspacio, error: reservasEspacioError } = await supabaseAdmin
+            .from("reservas")
+            .select("id, hora_inicio, hora_fin")
+            .eq("espacio_id", espacio_id)
+            .eq("fecha", fecha)
+            .in("estado", ["activa", "en progreso"]);
 
-        if (ocuparError) {
-            return res.status(500).json({ mensaje: ocuparError.message });
+        if (reservasEspacioError) {
+            return res.status(500).json({ mensaje: reservasEspacioError.message });
         }
 
-        if (!espacioOcupado) {
+        const hayCruce = (reservasEspacio || []).some((reserva) => {
+            const inicioExistente = String(reserva.hora_inicio || "").slice(0, 5);
+            const finExistente = String(reserva.hora_fin || "").slice(0, 5);
+            return !finExistente || (inicio < finExistente && fin > inicioExistente);
+        });
+
+        if (hayCruce) {
             return res.status(409).json({
-                mensaje: "Otro usuario acaba de reservar este espacio. Actualiza la lista."
+                mensaje: "El espacio ya tiene una reserva en ese horario. Selecciona otro horario."
+            });
+        }
+
+        const sillasActuales = Number(espacio.sillas_ocupadas_externas || 0);
+        if (sillasActuales + cantidad > Number(espacio.capacidad)) {
+            return res.status(409).json({
+                mensaje: "No hay suficientes sillas disponibles para esa cantidad de estudiantes."
             });
         }
 
@@ -201,17 +227,28 @@ router.post("/", async (req, res) => {
                 usuario_id,
                 espacio_id,
                 fecha,
-                hora_inicio,
+                hora_inicio: inicio,
+                hora_fin: fin,
+                cantidad_estudiantes: cantidad,
                 estado: "activa"
             }])
             .select();
 
         if (error) {
-            await supabaseAdmin
-                .from("espacios")
-                .update({ estado: "disponible" })
-                .eq("id", espacio_id);
             return res.status(500).json({ mensaje: error.message });
+        }
+
+        const { error: sillasError } = await supabaseAdmin
+            .from("espacios")
+            .update({ sillas_ocupadas_externas: sillasActuales + cantidad })
+            .eq("id", espacio_id);
+
+        if (sillasError) {
+            await supabaseAdmin
+                .from("reservas")
+                .update({ estado: "caducada", finalizada_at: new Date().toISOString() })
+                .eq("id", data[0].id);
+            return res.status(500).json({ mensaje: sillasError.message });
         }
 
         return res.status(201).json(data);
@@ -424,13 +461,28 @@ router.patch("/:id/cancel", async (req, res) => {
         }
 
         // cambiar estado de la reserva
+        const { data: reservaCompleta, error: consultaError } = await supabaseAdmin
+            .from("reservas")
+            .select("espacio_id, cantidad_estudiantes, estado")
+            .eq("id", id)
+            .single();
+
+        if (consultaError || !reservaCompleta) {
+            return res.status(404).json({ mensaje: "Reserva no encontrada" });
+        }
+
+        if (!["activa", "en progreso"].includes(reservaCompleta.estado)) {
+            return res.status(409).json({ mensaje: "La reserva ya no está activa." });
+        }
+
         const { data, error } = await supabaseAdmin
             .from("reservas")
             .update({
-                estado: "cancelada",
+                estado: "caducada",
                 finalizada_at: new Date().toISOString()
             })
             .eq("id", id)
+            .in("estado", ["activa", "en progreso"])
             .select();
 
         if (error) {
@@ -440,17 +492,30 @@ router.patch("/:id/cancel", async (req, res) => {
         }
 
         // liberar el espacio
-        const { error: espacioError } = await supabaseAdmin
+        const { data: espacioActual, error: espacioConsultaError } = await supabaseAdmin
             .from("espacios")
-            .update({
-                estado: "disponible"
-            })
-            .eq("id", reserva.espacio_id);
+            .select("sillas_ocupadas_externas")
+            .eq("id", reservaCompleta.espacio_id)
+            .maybeSingle();
 
-        if (espacioError) {
-            return res.status(500).json({
-                mensaje: espacioError.message
-            });
+        if (espacioConsultaError) {
+            return res.status(500).json({ mensaje: espacioConsultaError.message });
+        }
+
+        if (espacioActual) {
+            const { error: sillasError } = await supabaseAdmin
+                .from("espacios")
+                .update({
+                    sillas_ocupadas_externas: Math.max(
+                        0,
+                        Number(espacioActual.sillas_ocupadas_externas || 0) - Number(reservaCompleta.cantidad_estudiantes || 1)
+                    )
+                })
+                .eq("id", reservaCompleta.espacio_id);
+
+            if (sillasError) {
+                return res.status(500).json({ mensaje: sillasError.message });
+            }
         }
 
         res.json(data);
@@ -480,6 +545,20 @@ router.patch("/:id/finish", async (req, res) => {
         }
 
         // cambiar estado de la reserva
+        const { data: reservaCompleta, error: consultaError } = await supabaseAdmin
+            .from("reservas")
+            .select("espacio_id, cantidad_estudiantes, estado")
+            .eq("id", id)
+            .single();
+
+        if (consultaError || !reservaCompleta) {
+            return res.status(404).json({ mensaje: "Reserva no encontrada" });
+        }
+
+        if (!["activa", "en progreso"].includes(reservaCompleta.estado)) {
+            return res.status(409).json({ mensaje: "La reserva ya no está activa." });
+        }
+
         const { data, error } = await supabaseAdmin
             .from("reservas")
             .update({
@@ -487,6 +566,7 @@ router.patch("/:id/finish", async (req, res) => {
                 finalizada_at: new Date().toISOString()
             })
             .eq("id", id)
+            .in("estado", ["activa", "en progreso"])
             .select();
 
         if (error) {
