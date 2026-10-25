@@ -1,3 +1,4 @@
+-- guarda la cantidad de estudiantes por reserva
 ALTER TABLE public.reservas
 ADD COLUMN IF NOT EXISTS cantidad_estudiantes integer NOT NULL DEFAULT 1;
 
