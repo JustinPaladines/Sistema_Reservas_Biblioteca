@@ -65,6 +65,55 @@ async function caducarReservasVencidas() {
             if (sillasError) throw sillasError;
         }
     }
+
+    const { data: reservasTerminadas, error: terminadasError } = await supabaseAdmin
+        .from("reservas")
+        .select("id, espacio_id, fecha, hora_fin, cantidad_estudiantes")
+        .eq("estado", "en progreso")
+        .not("hora_fin", "is", null);
+
+    if (terminadasError) throw terminadasError;
+
+    for (const reserva of reservasTerminadas || []) {
+        const fin = String(reserva.hora_fin || "").slice(0, 8);
+        const finCompleto = fin.length === 5 ? `${fin}:00` : fin;
+        const finReserva = new Date(`${reserva.fecha}T${finCompleto}-05:00`).getTime();
+
+        if (!Number.isFinite(finReserva) || ahora < finReserva) continue;
+
+        const { data: finalizada, error: finalizarError } = await supabaseAdmin
+            .from("reservas")
+            .update({ estado: "finalizada", finalizada_at: new Date().toISOString() })
+            .eq("id", reserva.id)
+            .eq("estado", "en progreso")
+            .select("id")
+            .maybeSingle();
+
+        if (finalizarError) throw finalizarError;
+        if (!finalizada) continue;
+
+        const { data: espacioActual, error: espacioError } = await supabaseAdmin
+            .from("espacios")
+            .select("sillas_ocupadas_externas")
+            .eq("id", reserva.espacio_id)
+            .maybeSingle();
+
+        if (espacioError) throw espacioError;
+
+        if (espacioActual) {
+            const { error: sillasError } = await supabaseAdmin
+                .from("espacios")
+                .update({
+                    sillas_ocupadas_externas: Math.max(
+                        0,
+                        Number(espacioActual.sillas_ocupadas_externas || 0) - Number(reserva.cantidad_estudiantes || 1)
+                    )
+                })
+                .eq("id", reserva.espacio_id);
+
+            if (sillasError) throw sillasError;
+        }
+    }
 }
 
 // crear una reserva y validar disponibilidad, usuario y horario
