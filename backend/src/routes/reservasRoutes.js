@@ -572,19 +572,6 @@ router.patch("/:id/finish", async (req, res) => {
     try {
         const { id } = req.params;
 
-        // obtener el espacio asociado a la reserva
-        const { data: reserva, error: reservaError } = await supabaseAdmin
-            .from("reservas")
-            .select("espacio_id")
-            .eq("id", id)
-            .single();
-
-        if (reservaError) {
-            return res.status(404).json({
-                mensaje: "Reserva no encontrada"
-            });
-        }
-
         // cambiar estado de la reserva
         const { data: reservaCompleta, error: consultaError } = await supabaseAdmin
             .from("reservas")
