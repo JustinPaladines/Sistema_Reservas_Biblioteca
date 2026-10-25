@@ -36,34 +36,7 @@ async function caducarReservasVencidas() {
         if (actualizarError) throw actualizarError;
         if (!actualizada) continue;
 
-        const { data: otrasReservas, error: otrasError } = await supabaseAdmin
-            .from("reservas")
-            .select("id")
-            .eq("espacio_id", reserva.espacio_id)
-            .in("estado", ["activa", "en progreso"])
-            .limit(1);
 
-        if (otrasError) throw otrasError;
-
-        const { data: espacio, error: espacioError } = await supabaseAdmin
-            .from("espacios")
-            .select("sillas_ocupadas_externas")
-            .eq("id", reserva.espacio_id)
-            .maybeSingle();
-
-        if (espacioError) throw espacioError;
-
-        if (espacio) {
-            const cantidad = Number(reserva.cantidad_estudiantes || 1);
-            const { error: sillasError } = await supabaseAdmin
-                .from("espacios")
-                .update({
-                    sillas_ocupadas_externas: Math.max(0, Number(espacio.sillas_ocupadas_externas || 0) - cantidad)
-                })
-                .eq("id", reserva.espacio_id);
-
-            if (sillasError) throw sillasError;
-        }
     }
 
     const { data: reservasTerminadas, error: terminadasError } = await supabaseAdmin
@@ -263,13 +236,6 @@ router.post("/", async (req, res) => {
             });
         }
 
-        const sillasActuales = Number(espacio.sillas_ocupadas_externas || 0);
-        if (sillasActuales + cantidad > Number(espacio.capacidad)) {
-            return res.status(409).json({
-                mensaje: "No hay suficientes sillas disponibles para esa cantidad de estudiantes."
-            });
-        }
-
         const { data, error } = await supabaseAdmin
             .from("reservas")
             .insert([{
@@ -285,19 +251,6 @@ router.post("/", async (req, res) => {
 
         if (error) {
             return res.status(500).json({ mensaje: error.message });
-        }
-
-        const { error: sillasError } = await supabaseAdmin
-            .from("espacios")
-            .update({ sillas_ocupadas_externas: sillasActuales + cantidad })
-            .eq("id", espacio_id);
-
-        if (sillasError) {
-            await supabaseAdmin
-                .from("reservas")
-                .update({ estado: "caducada", finalizada_at: new Date().toISOString() })
-                .eq("id", data[0].id);
-            return res.status(500).json({ mensaje: sillasError.message });
         }
 
         return res.status(201).json(data);
@@ -471,18 +424,67 @@ router.patch("/:id/check-in", async (req, res) => {
     try {
         const { id } = req.params;
 
+        const { data: reserva, error: reservaError } = await supabaseAdmin
+            .from("reservas")
+            .select("id, espacio_id, cantidad_estudiantes, estado")
+            .eq("id", id)
+            .eq("estado", "activa")
+            .maybeSingle();
+
+        if (reservaError || !reserva) {
+            return res.status(400).json({
+                mensaje: reservaError?.message || "La reserva no está activa o no existe."
+            });
+        }
+
+        const { data: espacio, error: espacioError } = await supabaseAdmin
+            .from("espacios")
+            .select("capacidad, sillas_ocupadas_externas")
+            .eq("id", reserva.espacio_id)
+            .maybeSingle();
+
+        if (espacioError || !espacio) {
+            return res.status(500).json({
+                mensaje: espacioError?.message || "No se encontró el espacio de la reserva."
+            });
+        }
+
+        const cantidad = Number(reserva.cantidad_estudiantes || 1);
+        const sillasActuales = Number(espacio.sillas_ocupadas_externas || 0);
+
+        if (sillasActuales + cantidad > Number(espacio.capacidad)) {
+            return res.status(409).json({
+                mensaje: "No hay suficientes sillas disponibles para iniciar esta reserva."
+            });
+        }
+
         const { data, error } = await supabaseAdmin
             .from("reservas")
             .update({ estado: "en progreso" })
             .eq("id", id)
             .eq("estado", "activa")
             .select()
-            .single();
+            .maybeSingle();
 
         if (error || !data) {
             return res.status(400).json({
                 mensaje: error?.message || "La reserva no está activa o no existe."
             });
+        }
+
+        const { error: sillasError } = await supabaseAdmin
+            .from("espacios")
+            .update({ sillas_ocupadas_externas: sillasActuales + cantidad })
+            .eq("id", reserva.espacio_id);
+
+        if (sillasError) {
+            await supabaseAdmin
+                .from("reservas")
+                .update({ estado: "activa" })
+                .eq("id", id)
+                .eq("estado", "en progreso");
+
+            return res.status(500).json({ mensaje: sillasError.message });
         }
 
         res.json(data);
@@ -491,23 +493,11 @@ router.patch("/:id/check-in", async (req, res) => {
     }
 });
 
+
 // Cancelar reserva
 router.patch("/:id/cancel", async (req, res) => {
     try {
         const { id } = req.params;
-
-        // obtener el espacio asociado a la reserva
-        const { data: reserva, error: reservaError } = await supabaseAdmin
-            .from("reservas")
-            .select("espacio_id")
-            .eq("id", id)
-            .single();
-
-        if (reservaError) {
-            return res.status(404).json({
-                mensaje: "Reserva no encontrada"
-            });
-        }
 
         // cambiar estado de la reserva
         const { data: reservaCompleta, error: consultaError } = await supabaseAdmin
@@ -541,29 +531,31 @@ router.patch("/:id/cancel", async (req, res) => {
         }
 
         // liberar el espacio
-        const { data: espacioActual, error: espacioConsultaError } = await supabaseAdmin
-            .from("espacios")
-            .select("sillas_ocupadas_externas")
-            .eq("id", reservaCompleta.espacio_id)
-            .maybeSingle();
-
-        if (espacioConsultaError) {
-            return res.status(500).json({ mensaje: espacioConsultaError.message });
-        }
-
-        if (espacioActual) {
-            const { error: sillasError } = await supabaseAdmin
+        if (reservaCompleta.estado === "en progreso") {
+            const { data: espacioActual, error: espacioConsultaError } = await supabaseAdmin
                 .from("espacios")
-                .update({
-                    sillas_ocupadas_externas: Math.max(
-                        0,
-                        Number(espacioActual.sillas_ocupadas_externas || 0) - Number(reservaCompleta.cantidad_estudiantes || 1)
-                    )
-                })
-                .eq("id", reservaCompleta.espacio_id);
+                .select("sillas_ocupadas_externas")
+                .eq("id", reservaCompleta.espacio_id)
+                .maybeSingle();
 
-            if (sillasError) {
-                return res.status(500).json({ mensaje: sillasError.message });
+            if (espacioConsultaError) {
+                return res.status(500).json({ mensaje: espacioConsultaError.message });
+            }
+
+            if (espacioActual) {
+                const { error: sillasError } = await supabaseAdmin
+                    .from("espacios")
+                    .update({
+                        sillas_ocupadas_externas: Math.max(
+                            0,
+                            Number(espacioActual.sillas_ocupadas_externas || 0) - Number(reservaCompleta.cantidad_estudiantes || 1)
+                        )
+                    })
+                    .eq("id", reservaCompleta.espacio_id);
+
+                if (sillasError) {
+                    return res.status(500).json({ mensaje: sillasError.message });
+                }
             }
         }
 
@@ -624,18 +616,32 @@ router.patch("/:id/finish", async (req, res) => {
             });
         }
 
-        // liberar el espacio
-        const { error: espacioError } = await supabaseAdmin
-            .from("espacios")
-            .update({
-                estado: "disponible"
-            })
-            .eq("id", reserva.espacio_id);
+        if (reservaCompleta.estado === "en progreso") {
+            const { data: espacioActual, error: espacioConsultaError } = await supabaseAdmin
+                .from("espacios")
+                .select("sillas_ocupadas_externas")
+                .eq("id", reservaCompleta.espacio_id)
+                .maybeSingle();
 
-        if (espacioError) {
-            return res.status(500).json({
-                mensaje: espacioError.message
-            });
+            if (espacioConsultaError) {
+                return res.status(500).json({ mensaje: espacioConsultaError.message });
+            }
+
+            if (espacioActual) {
+                const { error: sillasError } = await supabaseAdmin
+                    .from("espacios")
+                    .update({
+                        sillas_ocupadas_externas: Math.max(
+                            0,
+                            Number(espacioActual.sillas_ocupadas_externas || 0) - Number(reservaCompleta.cantidad_estudiantes || 1)
+                        )
+                    })
+                    .eq("id", reservaCompleta.espacio_id);
+
+                if (sillasError) {
+                    return res.status(500).json({ mensaje: sillasError.message });
+                }
+            }
         }
 
         res.json(data);
