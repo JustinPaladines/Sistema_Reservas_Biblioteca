@@ -7,7 +7,7 @@ const { supabaseAdmin } = require("../supabaseClients");
 async function caducarReservasVencidas() {
     const { data: reservas, error } = await supabaseAdmin
         .from("reservas")
-        .select("id, espacio_id, fecha, hora_inicio")
+        .select("id, espacio_id, fecha, hora_inicio, cantidad_estudiantes")
         .eq("estado", "activa");
 
     if (error) throw error;
@@ -42,13 +42,26 @@ async function caducarReservasVencidas() {
 
         if (otrasError) throw otrasError;
 
-        if (!otrasReservas?.length) {
-            const { error: liberarError } = await supabaseAdmin
+        const { data: espacioActual, error: espacioError } = await supabaseAdmin
+            .from("espacios")
+            .select("sillas_ocupadas_externas")
+            .eq("id", reserva.espacio_id)
+            .maybeSingle();
+
+        if (espacioError) throw espacioError;
+
+        if (espacioActual) {
+            const { error: sillasError } = await supabaseAdmin
                 .from("espacios")
-                .update({ estado: "disponible" })
+                .update({
+                    sillas_ocupadas_externas: Math.max(
+                        0,
+                        Number(espacioActual.sillas_ocupadas_externas || 0) - Number(reserva.cantidad_estudiantes || 1)
+                    )
+                })
                 .eq("id", reserva.espacio_id);
 
-            if (liberarError) throw liberarError;
+            if (sillasError) throw sillasError;
         }
     }
 }
@@ -70,34 +83,61 @@ router.get("/", async (req, res) => {
 router.get("/available", async (req, res) => {
     try {
         await caducarReservasVencidas();
+
+        const { fecha, hora_inicio, hora_fin } = req.query;
+        const tieneHorario = Boolean(fecha || hora_inicio || hora_fin);
+
+        if (tieneHorario && (!fecha || !hora_inicio || !hora_fin)) {
+            return res.status(400).json({
+                mensaje: "Para consultar disponibilidad debe indicar fecha, hora de inicio y hora de fin."
+            });
+        }
+
+        const inicio = String(hora_inicio || "").slice(0, 5);
+        const fin = String(hora_fin || "").slice(0, 5);
+
+        if (tieneHorario && fin <= inicio) {
+            return res.status(400).json({
+                mensaje: "La hora de fin debe ser posterior a la hora de inicio."
+            });
+        }
+
         const { data: espacios, error: espaciosError } = await supabaseAdmin
             .from("espacios")
             .select("*")
-            .eq("estado", "disponible")
+            .neq("estado", "mantenimiento")
             .order("id", { ascending: true });
 
         if (espaciosError) {
             return res.status(500).json({ mensaje: espaciosError.message });
         }
 
-        if (!espacios?.length) return res.json([]);
+        if (!tieneHorario || !espacios?.length) {
+            return res.json(espacios || []);
+        }
 
-        // ocultar espacios con reservas que todavía están vigentes
         const { data: reservas, error: reservasError } = await supabaseAdmin
             .from("reservas")
-            .select("espacio_id")
+            .select("espacio_id, hora_inicio, hora_fin")
+            .eq("fecha", fecha)
             .in("estado", ["activa", "en progreso"]);
 
         if (reservasError) {
             return res.status(500).json({ mensaje: reservasError.message });
         }
 
-        const espaciosReservados = new Set(
-            (reservas || []).map((reserva) => Number(reserva.espacio_id))
+        const espaciosOcupados = new Set(
+            (reservas || [])
+                .filter((reserva) => {
+                    const inicioExistente = String(reserva.hora_inicio || "").slice(0, 5);
+                    const finExistente = String(reserva.hora_fin || "").slice(0, 5);
+                    return !finExistente || (inicio < finExistente && fin > inicioExistente);
+                })
+                .map((reserva) => Number(reserva.espacio_id))
         );
 
         return res.json(
-            espacios.filter((espacio) => !espaciosReservados.has(Number(espacio.id)))
+            espacios.filter((espacio) => !espaciosOcupados.has(Number(espacio.id)))
         );
     } catch (error) {
         return res.status(500).json({ mensaje: error.message });
@@ -111,8 +151,14 @@ router.post("/", async (req, res) => {
         capacidad,
         ubicacion,
         estado,
-        biblioteca
+        biblioteca_id
     } = req.body;
+
+    if (!nombre || !capacidad || !ubicacion || !biblioteca_id) {
+        return res.status(400).json({
+            mensaje: "Debe indicar nombre, capacidad, ubicación y biblioteca."
+        });
+    }
 
     const { data, error } = await supabaseAdmin
         .from("espacios")
@@ -122,8 +168,8 @@ router.post("/", async (req, res) => {
                 descripcion,
                 capacidad,
                 ubicacion,
-                estado,
-                biblioteca
+                estado: estado || "disponible",
+                biblioteca_id
             }
         ])
         .select();
