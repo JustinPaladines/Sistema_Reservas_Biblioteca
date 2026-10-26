@@ -97,10 +97,6 @@ export default function LoginCard() {
     }
   };
 
-  const handleRegister = () => {
-    navigate("/Registro");
-  };
-
   return (
     <div className="card-wrapper">
       <div className="card-inner">
@@ -150,20 +146,11 @@ export default function LoginCard() {
             </div>
           </div>
 
-          <div className="options-container">
-            <a href="/olvide-contrasena" className="forgot-password-link">
-              ¿Olvidaste tu contraseña?
-            </a>
-          </div>
-
           <div className="action-buttons-container">
             <button onClick={handleLogin} className="primary-btn" disabled={cargando}>
               {cargando ? "Procesando..." : "Iniciar sesión"}
             </button>
 
-            <button onClick={handleRegister} className="secondary-btn" disabled={cargando}>
-              Registrarse
-            </button>
           </div>
         </div>
       </div>
