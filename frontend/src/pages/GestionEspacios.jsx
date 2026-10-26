@@ -124,7 +124,7 @@ const GestionEspacios = () => {
           capacidad: Number(capacidad),
           ubicacion,
           estado: "disponible",
-          biblioteca: Number(biblioteca),
+          biblioteca_id: Number(biblioteca),
         }),
       });
 
@@ -144,8 +144,8 @@ const GestionEspacios = () => {
     setDescripcion(espacio.descripcion);
     setCapacidad(espacio.capacidad);
     setUbicacion(espacio.ubicacion);
-    const bibliotecaActual = bibliotecas.find((item) => String(item.id) === String(espacio.biblioteca) || item.nombre === espacio.biblioteca);
-    setBiblioteca(bibliotecaActual ? String(bibliotecaActual.id) : String(espacio.biblioteca));
+    const bibliotecaActual = bibliotecas.find((item) => String(item.id) === String(espacio.biblioteca_id ?? espacio.biblioteca) || item.nombre === espacio.biblioteca);
+    setBiblioteca(bibliotecaActual ? String(bibliotecaActual.id) : String(espacio.biblioteca_id ?? espacio.biblioteca));
   };
 
   const actualizarEspacio = async (e) => {
@@ -314,7 +314,7 @@ const GestionEspacios = () => {
                   <td>{espacio.capacidad}</td>
                   <td>{espacio.ubicacion}</td>
                   <td>{espacio.estado}</td>
-                  <td>{bibliotecas.find((item) => String(item.id) === String(espacio.biblioteca))?.nombre || espacio.biblioteca}</td>
+                  <td>{bibliotecas.find((item) => String(item.id) === String(espacio.biblioteca_id ?? espacio.biblioteca))?.nombre || espacio.biblioteca_id || espacio.biblioteca}</td>
 
                   {/* Separación aplicada mediante flex y gap */}
                   <td style={{ display: 'flex', gap: '10px' }}>
