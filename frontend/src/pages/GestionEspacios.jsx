@@ -161,7 +161,7 @@ const GestionEspacios = () => {
           descripcion,
           capacidad: Number(capacidad),
           ubicacion,
-          biblioteca: Number(biblioteca),
+          biblioteca_id: Number(biblioteca),
         }),
       });
 
