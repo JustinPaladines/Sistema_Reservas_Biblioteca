@@ -45,7 +45,7 @@ const GestionUsuarios = () => {
                 `/api/usuarios${query ? `?${query}` : ""}`
             );
 
-            setUsuarios(data);
+            setUsuarios(data.filter((usuario) => !["administrador", "admin"].includes(String(usuario.rol).toLowerCase())));
 
         } catch (error) {
             console.error("Error al cargar usuarios:", error);
@@ -81,7 +81,6 @@ const GestionUsuarios = () => {
             await api(`/api/usuarios/${usuarioEditando.id}`, {
                 method: "PUT",
                 body: JSON.stringify({
-                    rol: rolEditar,
                     estado: estadoEditar
                 })
             });
@@ -152,10 +151,6 @@ const GestionUsuarios = () => {
                 >
                     <option value="">
                         Todos los roles
-                    </option>
-
-                    <option value="administrador">
-                        Administrador
                     </option>
 
                     <option value="bibliotecario">
@@ -320,30 +315,6 @@ const GestionUsuarios = () => {
                         </strong>{" "}
                         {usuarioEditando.correo}
                     </p>
-
-                    <label>
-                        Rol:
-                    </label>
-
-                    <select
-                        className="form-input"
-                        value={rolEditar}
-                        onChange={(e) =>
-                            setRolEditar(e.target.value)
-                        }
-                    >
-                        <option value="administrador">
-                            Administrador
-                        </option>
-
-                        <option value="bibliotecario">
-                            Bibliotecario
-                        </option>
-
-                        <option value="estudiante">
-                            Estudiante
-                        </option>
-                    </select>
 
                     <label>
                         Estado:
