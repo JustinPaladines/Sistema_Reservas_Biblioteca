@@ -10,6 +10,7 @@ const GestionEspacios = () => {
   const esBibliotecario = location.pathname.startsWith("/bibliotecario/");
 
   const [espacios, setEspacios] = useState([]);
+  const [bibliotecas, setBibliotecas] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [nombre, setNombre] = useState("");
@@ -23,7 +24,24 @@ const GestionEspacios = () => {
 
   useEffect(() => {
     obtenerEspacios();
+    obtenerBibliotecas();
   }, []);
+
+  const obtenerBibliotecas = async () => {
+    try {
+      const data = await api("/api/libraries");
+      setBibliotecas(data);
+    } catch (error) {
+      console.error(error);
+      alert("Error al cargar las bibliotecas");
+    }
+  };
+
+  const seleccionarBiblioteca = (id) => {
+    setBiblioteca(id);
+    const seleccionada = bibliotecas.find((item) => String(item.id) === String(id));
+    setUbicacion(seleccionada?.ubicacion || "");
+  };
 
   const obtenerEspacios = async () => {
     try {
@@ -106,7 +124,7 @@ const GestionEspacios = () => {
           capacidad: Number(capacidad),
           ubicacion,
           estado: "disponible",
-          biblioteca,
+          biblioteca: Number(biblioteca),
         }),
       });
 
@@ -126,7 +144,8 @@ const GestionEspacios = () => {
     setDescripcion(espacio.descripcion);
     setCapacidad(espacio.capacidad);
     setUbicacion(espacio.ubicacion);
-    setBiblioteca(espacio.biblioteca);
+    const bibliotecaActual = bibliotecas.find((item) => String(item.id) === String(espacio.biblioteca) || item.nombre === espacio.biblioteca);
+    setBiblioteca(bibliotecaActual ? String(bibliotecaActual.id) : String(espacio.biblioteca));
   };
 
   const actualizarEspacio = async (e) => {
@@ -142,7 +161,7 @@ const GestionEspacios = () => {
           descripcion,
           capacidad: Number(capacidad),
           ubicacion,
-          biblioteca,
+          biblioteca: Number(biblioteca),
         }),
       });
 
@@ -220,21 +239,26 @@ const GestionEspacios = () => {
           required
         />
 
+        <select
+          className="form-input"
+          value={biblioteca}
+          onChange={(e) => seleccionarBiblioteca(e.target.value)}
+          required
+        >
+          <option value="">Seleccione una biblioteca</option>
+          {bibliotecas.map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.nombre}
+            </option>
+          ))}
+        </select>
+
         <input
           className="form-input"
           type="text"
           placeholder="Ubicación"
           value={ubicacion}
-          onChange={(e) => setUbicacion(e.target.value)}
-          required
-        />
-
-        <input
-          className="form-input"
-          type="text"
-          placeholder="Biblioteca"
-          value={biblioteca}
-          onChange={(e) => setBiblioteca(e.target.value)}
+          readOnly
           required
         />
 
@@ -290,7 +314,7 @@ const GestionEspacios = () => {
                   <td>{espacio.capacidad}</td>
                   <td>{espacio.ubicacion}</td>
                   <td>{espacio.estado}</td>
-                  <td>{espacio.biblioteca}</td>
+                  <td>{bibliotecas.find((item) => String(item.id) === String(espacio.biblioteca))?.nombre || espacio.biblioteca}</td>
 
                   {/* Separación aplicada mediante flex y gap */}
                   <td style={{ display: 'flex', gap: '10px' }}>
