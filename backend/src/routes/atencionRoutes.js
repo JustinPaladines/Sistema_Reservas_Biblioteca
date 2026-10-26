@@ -114,6 +114,8 @@ router.get("/reservas", async (req, res) => {
                 espacio_id,
                 fecha,
                 hora_inicio,
+                hora_fin,
+                cantidad_estudiantes,
                 estado,
                 observacion,
                 finalizada_at
