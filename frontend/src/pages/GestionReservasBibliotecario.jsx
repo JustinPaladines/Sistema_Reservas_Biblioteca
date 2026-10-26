@@ -254,7 +254,7 @@ const GestionReservasBibliotecario = () => {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="9">No se encontraron reservas.</td>
+                                    <td colSpan={esBibliotecario ? 11 : 10}>No se encontraron reservas.</td>
                                 </tr>
                             )}
                         </tbody>
