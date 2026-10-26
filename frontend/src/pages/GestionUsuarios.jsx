@@ -14,7 +14,6 @@ const GestionUsuarios = () => {
     const [estado, setEstado] = useState("");
 
     const [usuarioEditando, setUsuarioEditando] = useState(null);
-    const [rolEditar, setRolEditar] = useState("");
     const [estadoEditar, setEstadoEditar] = useState("");
 
     useEffect(() => {
@@ -64,13 +63,11 @@ const GestionUsuarios = () => {
 
     const editarUsuario = (usuario) => {
         setUsuarioEditando(usuario);
-        setRolEditar(usuario.rol);
         setEstadoEditar(usuario.estado);
     };
 
     const cancelarEdicion = () => {
         setUsuarioEditando(null);
-        setRolEditar("");
         setEstadoEditar("");
     };
 
