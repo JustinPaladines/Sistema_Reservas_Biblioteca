@@ -126,7 +126,7 @@ const GestionReservasBibliotecario = () => {
 
     return (
         <div className="page-container">
-            <h1 className="page-title">Gestión de Reservas</h1>
+            <h1 className="page-title">{esBibliotecario ? "Gestión de Reservas" : "Historial de Reservas"}</h1>
 
             <div className="page-actions">
                 <button
@@ -200,9 +200,11 @@ const GestionReservasBibliotecario = () => {
                                 <th>Espacio</th>
                                 <th>Fecha</th>
                                 <th>Hora inicio</th>
+                                <th>Hora fin</th>
+                                <th>Cantidad de estudiantes</th>
                                 <th>Estado</th>
                                 <th>Observación</th>
-                                <th>Acciones</th>
+                                {esBibliotecario && <th>Acciones</th>}
                             </tr>
                         </thead>
 
@@ -216,9 +218,11 @@ const GestionReservasBibliotecario = () => {
                                         <td>{reserva.espacio?.nombre || reserva.espacio_nombre || reserva.espacio_id}</td>
                                         <td>{reserva.fecha}</td>
                                         <td>{reserva.hora_inicio}</td>
+                                        <td>{reserva.hora_fin || "Sin hora"}</td>
+                                        <td>{reserva.cantidad_estudiantes ?? "No especificado"}</td>
                                         <td>{reserva.estado}</td>
                                         <td>{reserva.observacion || "Sin observación"}</td>
-                                        <td>
+                                        {esBibliotecario && <td>
                                             <div className="acciones-reserva">
                                                 {reserva.estado === "activa" && (
                                                     <button
@@ -245,7 +249,7 @@ const GestionReservasBibliotecario = () => {
                                                     Registrar incidente
                                                 </button>
                                             </div>
-                                        </td>
+                                        </td>}
                                     </tr>
                                 ))
                             ) : (
