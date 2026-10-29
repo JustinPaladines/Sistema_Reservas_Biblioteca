@@ -1,0 +1,177 @@
+/* ===========================
+   DASHBOARD
+=========================== */
+
+.dashboard-container {
+    max-width: 1150px;
+    margin: 0 auto;
+    padding: 35px;
+    background-color: #F8FAFC;
+    min-height: 100vh;
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #E2E8F0;
+}
+
+.dashboard-title {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #512DA8;
+}
+
+.welcome-text {
+    margin-top: 8px;
+    color: #64748B;
+    font-size: .95rem;
+}
+
+/* ===========================
+   MÓDULOS
+=========================== */
+
+.modules-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+    gap: 22px;
+}
+
+.module-card {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 14px;
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, .03);
+    transition: border-color .2s ease, box-shadow .2s ease;
+}
+
+.module-card:hover {
+    border-color: #673AB7;
+    box-shadow: 0 6px 16px rgba(103, 58, 183, 0.08);
+}
+
+.module-card h3 {
+    margin: 0 0 12px;
+    color: #512DA8;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.module-card p {
+    flex: 1;
+    margin: 0 0 22px;
+    color: #666;
+    line-height: 1.6;
+    font-size: .94rem;
+}
+
+/* ===========================
+   BOTÓN
+=========================== */
+
+.module-btn {
+    width: 100%;
+    padding: 11px;
+    border: none;
+    border-radius: 8px;
+    background: #22C55E;
+    color: #FFFFFF;
+    font-size: .95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .2s ease;
+}
+
+.module-btn:hover {
+    background: #16A34A;
+}
+
+/* ===========================
+   USER MENU
+=========================== */
+
+.user-menu {
+    position: relative;
+}
+
+.user-menu-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 15px;
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: border-color .2s ease, box-shadow .2s ease;
+    font-size: .92rem;
+    color: #1E293B;
+}
+
+.user-menu-btn:hover {
+    border-color: #22C55E;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, .04);
+}
+
+.user-dropdown {
+    position: absolute;
+    top: 48px;
+    right: 0;
+    width: 210px;
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, .06);
+    overflow: hidden;
+    z-index: 100;
+}
+
+.user-dropdown button {
+    width: 100%;
+    padding: 13px 16px;
+    border: none;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+    font-size: .92rem;
+    color: #1E293B;
+    transition: background .2s ease, color .2s ease;
+}
+
+.user-dropdown button:hover {
+    background: #DCFCE7;
+    color: #16A34A;
+}
+
+/* ===========================
+   RESPONSIVE
+=========================== */
+
+@media (max-width: 768px) {
+    .dashboard-container {
+        padding: 25px;
+    }
+
+    .dashboard-header {
+        flex-direction: column;
+        gap: 20px;
+        align-items: flex-start;
+    }
+
+    .dashboard-title {
+        font-size: 1.7rem;
+    }
+
+    .modules-grid {
+        grid-template-columns: 1fr;
+    }
+}

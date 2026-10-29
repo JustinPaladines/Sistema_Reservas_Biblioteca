@@ -1,0 +1,348 @@
+
+
+:root {
+    /* verdes */
+    --green: #22C55E;
+    --green-hover: #16A34A;
+    --green-light: #86EFAC;
+    --green-pastel: #DCFCE7;
+    --green-dark: #14532D;
+
+    /* morados */
+    --purple: #7C3AED;
+    --purple-hover: #6D28D9;
+    --purple-light: #C4B5FD;
+    --purple-pastel: #EDE9FE;
+    --purple-dark: #2E1065;
+
+    /* neutros */
+    --background: #F8FAFC;
+    --surface: #FFFFFF;
+    --text: #1E293B;
+    --text-secondary: #64748B;
+    --border: #E2E8F0;
+
+    /* estados */
+    --danger: #EF4444;
+    --danger-hover: #DC2626;
+
+    /* extras */
+    --radius: 12px;
+    --shadow: 0 8px 24px rgba(0,0,0,.08);
+
+    --transition: .25s ease;
+}
+
+/* CONTENEDORES */
+
+.page-container{
+    max-width:1200px;
+    margin:auto;
+    padding:35px;
+    color:var(--text);
+}
+
+.page-title{
+    text-align:center;
+    color:var(--purple);
+    font-size:2.3rem;
+    font-weight:700;
+    margin-bottom:30px;
+}
+
+.page-card{
+    background:var(--surface);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:25px;
+}
+
+/* FORMULARIOS */
+
+.form-card{
+    display:flex;
+    flex-direction:column;
+    gap:15px;
+    width:450px;
+    margin:30px auto;
+    padding:25px;
+
+    background:white;
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+}
+
+.form-input{
+    padding:12px 14px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    transition:var(--transition);
+    font-size:14px;
+}
+
+.form-input:focus{
+    outline:none;
+    border-color:var(--purple);
+    box-shadow:0 0 0 3px rgba(124,58,237,.15);
+}
+
+/* BOTONES */
+
+.btn{
+    padding:11px 20px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    color:white;
+    font-weight:600;
+    transition:var(--transition);
+}
+
+.btn:hover{
+    transform:translateY(-2px);
+}
+
+.btn-primary{
+    background:var(--purple);
+}
+
+.btn-primary:hover{
+    background:var(--purple-hover);
+}
+
+.btn-success{
+    background:var(--green);
+}
+
+.btn-success:hover{
+    background:var(--green-hover);
+}
+
+.btn-danger{
+    background:var(--danger);
+}
+
+.btn-danger:hover{
+    background:var(--danger-hover);
+}
+
+.btn-back {
+    display: block;
+    margin: 20px auto;
+}
+
+.spacer-xs {
+    margin-left: 8px; 
+}
+
+/* TABLAS */
+
+.table-container{
+    overflow:auto;
+    margin-top:25px;
+}
+
+.data-table{
+    width:100%;
+    border-collapse:collapse;
+    background:white;
+    border-radius:var(--radius);
+    overflow:hidden;
+    box-shadow:var(--shadow);
+}
+
+.data-table th{
+    background:var(--purple);
+    color:white;
+    padding:15px;
+}
+
+.data-table td{
+    padding:14px;
+    border-bottom:1px solid var(--border);
+    text-align:center;
+}
+
+.data-table tbody tr:nth-child(even){
+    background:#faf8ff;
+}
+
+.data-table tbody tr:hover{
+    background:var(--purple-pastel);
+}
+
+/* UTILIDADES */
+
+.section-divider{
+    margin:40px 0;
+    border:none;
+    border-top:1px solid var(--border);
+}
+
+.loading{
+    text-align:center;
+    color:var(--text-secondary);
+    font-style:italic;
+}
+
+/* acciones de reserva con separación y ajuste en pantallas pequeñas */
+.acciones-reserva {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-width: 180px;
+    padding: 4px;
+}
+
+.acciones-reserva .btn {
+    margin: 2px;
+    white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+    .page-container {
+        padding: 18px;
+    }
+
+    .acciones-reserva {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .acciones-reserva .btn {
+        width: 100%;
+    }
+}
+
+/* Tabla de gestión de reservas */
+.reservas-table-container {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    margin-top: 20px;
+}
+
+.reservas-data-table {
+    width: 100%;
+    min-width: 1050px;
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+/* Encabezados */
+.reservas-data-table th {
+    padding: 12px 7px;
+    font-size: 13px;
+    line-height: 1.4;
+    text-align: center;
+    overflow-wrap: anywhere;
+}
+
+/* Contenido de las celdas */
+.reservas-data-table td {
+    padding: 12px 7px;
+    font-size: 13px;
+    line-height: 1.5;
+    text-align: center;
+    vertical-align: middle;
+    overflow-wrap: anywhere;
+}
+
+/* Ancho de cada columna */
+.reservas-data-table th:nth-child(1),
+.reservas-data-table td:nth-child(1) {
+    width: 4%;
+}
+
+.reservas-data-table th:nth-child(2),
+.reservas-data-table td:nth-child(2) {
+    width: 11%;
+}
+
+.reservas-data-table th:nth-child(3),
+.reservas-data-table td:nth-child(3) {
+    width: 13%;
+}
+
+.reservas-data-table th:nth-child(4),
+.reservas-data-table td:nth-child(4) {
+    width: 9%;
+}
+
+.reservas-data-table th:nth-child(5),
+.reservas-data-table td:nth-child(5) {
+    width: 8%;
+}
+
+.reservas-data-table th:nth-child(6),
+.reservas-data-table td:nth-child(6),
+.reservas-data-table th:nth-child(7),
+.reservas-data-table td:nth-child(7) {
+    width: 6%;
+}
+
+.reservas-data-table th:nth-child(8),
+.reservas-data-table td:nth-child(8) {
+    width: 7%;
+}
+
+.reservas-data-table th:nth-child(9),
+.reservas-data-table td:nth-child(9) {
+    width: 7%;
+}
+
+.reservas-data-table th:nth-child(10),
+.reservas-data-table td:nth-child(10) {
+    width: 10%;
+}
+
+.reservas-data-table th:nth-child(11),
+.reservas-data-table td:nth-child(11) {
+    width: 19%;
+}
+
+/* Columna Acciones: botones más compactos */
+.reservas-data-table .acciones-reserva {
+    min-width: 0;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 5px;
+}
+
+.reservas-data-table .acciones-reserva .btn {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 5px 4px;
+    font-size: 11px;
+    line-height: 1.25;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+/* Ajustes para pantallas pequeñas */
+@media (max-width: 720px) {
+    .reservas-data-table {
+        min-width: 1050px;
+    }
+
+    .reservas-data-table th {
+        padding: 9px 5px;
+        font-size: 12px;
+    }
+
+    .reservas-data-table td {
+        padding: 9px 5px;
+        font-size: 12px;
+    }
+
+    .reservas-data-table .acciones-reserva .btn {
+        padding: 4px;
+        font-size: 10px;
+    }
+}
