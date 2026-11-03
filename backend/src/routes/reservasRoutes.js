@@ -20,7 +20,7 @@ async function caducarReservasVencidas() {
         const horaCompleta = hora.length === 5 ? `${hora}:00` : hora;
         const inicio = new Date(`${reserva.fecha}T${horaCompleta}-05:00`).getTime();
 
-        if (!Number.isFinite(inicio) || ahora <= inicio + margen) continue;
+        if (!Number.isFinite(inicio) || ahora < inicio + margen) continue;
 
         const { data: actualizada, error: actualizarError } = await supabaseAdmin
             .from("reservas")
@@ -422,42 +422,38 @@ router.put("/:id", async (req, res) => {
 // iniciar una reserva activa
 router.patch("/:id/check-in", async (req, res) => {
     try {
+        await caducarReservasVencidas();
         const { id } = req.params;
-
         const { data: reserva, error: reservaError } = await supabaseAdmin
             .from("reservas")
-            .select("id, espacio_id, cantidad_estudiantes, estado")
+            .select("id, espacio_id, cantidad_estudiantes, estado, fecha, hora_inicio, hora_fin")
             .eq("id", id)
             .eq("estado", "activa")
             .maybeSingle();
-
         if (reservaError || !reserva) {
-            return res.status(400).json({
-                mensaje: reservaError?.message || "La reserva no está activa o no existe."
-            });
+            return res.status(400).json({ mensaje: reservaError?.message || "La reserva no está activa o no existe." });
         }
-
+        const horaInicio = String(reserva.hora_inicio || "").slice(0, 5);
+        const horaFin = String(reserva.hora_fin || "").slice(0, 5);
+        const inicioReserva = new Date(`${reserva.fecha}T${horaInicio}:00-05:00`).getTime();
+        const finReserva = new Date(`${reserva.fecha}T${horaFin}:00-05:00`).getTime();
+        const ahora = Date.now();
+        if (!Number.isFinite(inicioReserva) || !Number.isFinite(finReserva) || ahora < inicioReserva || ahora >= finReserva) {
+            return res.status(400).json({ mensaje: "solo se puede confirmar la asistencia dentro del horario establecido de la reserva" });
+        }
         const { data: espacio, error: espacioError } = await supabaseAdmin
             .from("espacios")
             .select("capacidad, sillas_ocupadas_externas")
             .eq("id", reserva.espacio_id)
             .maybeSingle();
-
         if (espacioError || !espacio) {
-            return res.status(500).json({
-                mensaje: espacioError?.message || "No se encontró el espacio de la reserva."
-            });
+            return res.status(500).json({ mensaje: espacioError?.message || "No se encontró el espacio de la reserva." });
         }
-
         const cantidad = Number(reserva.cantidad_estudiantes || 1);
         const sillasActuales = Number(espacio.sillas_ocupadas_externas || 0);
-
         if (sillasActuales + cantidad > Number(espacio.capacidad)) {
-            return res.status(409).json({
-                mensaje: "No hay suficientes sillas disponibles para iniciar esta reserva."
-            });
+            return res.status(409).json({ mensaje: "No hay suficientes sillas disponibles para iniciar esta reserva." });
         }
-
         const { data, error } = await supabaseAdmin
             .from("reservas")
             .update({ estado: "en progreso" })
@@ -465,28 +461,17 @@ router.patch("/:id/check-in", async (req, res) => {
             .eq("estado", "activa")
             .select()
             .maybeSingle();
-
         if (error || !data) {
-            return res.status(400).json({
-                mensaje: error?.message || "La reserva no está activa o no existe."
-            });
+            return res.status(400).json({ mensaje: error?.message || "La reserva no está activa o no existe." });
         }
-
         const { error: sillasError } = await supabaseAdmin
             .from("espacios")
             .update({ sillas_ocupadas_externas: sillasActuales + cantidad })
             .eq("id", reserva.espacio_id);
-
         if (sillasError) {
-            await supabaseAdmin
-                .from("reservas")
-                .update({ estado: "activa" })
-                .eq("id", id)
-                .eq("estado", "en progreso");
-
+            await supabaseAdmin.from("reservas").update({ estado: "activa" }).eq("id", id).eq("estado", "en progreso");
             return res.status(500).json({ mensaje: sillasError.message });
         }
-
         res.json(data);
     } catch (error) {
         res.status(500).json({ mensaje: error.message });

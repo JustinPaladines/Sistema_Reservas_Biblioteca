@@ -22,7 +22,7 @@ async function caducarReservasVencidas() {
         const horaCompleta = hora.length === 5 ? `${hora}:00` : hora;
         const inicio = new Date(`${reserva.fecha}T${horaCompleta}-05:00`).getTime();
 
-        if (!Number.isFinite(inicio) || ahora <= inicio + margen) continue;
+        if (!Number.isFinite(inicio) || ahora < inicio + margen) continue;
 
         const { data: actualizada, error: actualizarError } = await supabaseAdmin
             .from("reservas")

@@ -43,14 +43,14 @@ const EspaciosCompartidos = () => {
 
     return (
         <div className="page-container">
-            <h1 className="page-title">Espacios compartidos</h1>
-
             <button
                 className="btn btn-danger btn-back"
                 onClick={() => navigate(-1)}
             >
                 Regresar
             </button>
+
+            <h1 className="page-title">Espacios compartidos</h1>
 
             <hr className="section-divider" />
 

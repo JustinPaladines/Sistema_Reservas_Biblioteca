@@ -64,6 +64,9 @@ const GestionUsuarios = () => {
     const editarUsuario = (usuario) => {
         setUsuarioEditando(usuario);
         setEstadoEditar(usuario.estado);
+        window.setTimeout(() => {
+            document.getElementById("formulario-estado")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 0);
     };
 
     const cancelarEdicion = () => {
@@ -93,34 +96,8 @@ const GestionUsuarios = () => {
         }
     };
 
-    const desactivarUsuario = async (id) => {
-        const confirmar = window.confirm(
-            "¿Desea desactivar este usuario?"
-        );
-
-        if (!confirmar) return;
-
-        try {
-            await api(`/api/usuarios/${id}`, {
-                method: "DELETE"
-            });
-
-            alert("Usuario desactivado correctamente");
-
-            obtenerUsuarios();
-
-        } catch (error) {
-            console.error("Error al desactivar usuario:", error);
-            alert(error.message || "No se pudo desactivar el usuario");
-        }
-    };
-
     return (
         <div className="page-container">
-            <h1 className="page-title">
-                Gestión de Usuarios
-            </h1>
-
             <div className="page-actions">
                 <button
                     className="btn btn-danger btn-back"
@@ -129,6 +106,10 @@ const GestionUsuarios = () => {
                     Regresar
                 </button>
             </div>
+
+            <h1 className="page-title">
+                Gestión de Usuarios
+            </h1>
 
             <hr className="section-divider" />
 
@@ -254,30 +235,10 @@ const GestionUsuarios = () => {
                                         </td>
 
                                         {/* Separación aplicada mediante flex y gap */}
-                                        <td style={{ display: 'flex', gap: '10px' }}>
-                                            <button
-                                                className="btn btn-success"
-                                                onClick={() =>
-                                                    editarUsuario(
-                                                        usuario
-                                                    )
-                                                }
-                                            >
-                                                Editar
+                                        <td>
+                                            <button className="btn btn-success" onClick={() => editarUsuario(usuario)}>
+                                                Editar estado
                                             </button>
-
-                                            {usuario.estado !== "inactivo" && (
-                                                <button
-                                                    className="btn btn-danger"
-                                                    onClick={() =>
-                                                        desactivarUsuario(
-                                                            usuario.id
-                                                        )
-                                                    }
-                                                >
-                                                    Desactivar
-                                                </button>
-                                            )}
                                         </td>
                                     </tr>
                                 ))
@@ -294,9 +255,9 @@ const GestionUsuarios = () => {
             )}
 
             {usuarioEditando && (
-                <div className="form-card formulario-gestion">
+                <div id="formulario-estado" className="form-card formulario-gestion">
                     <h2>
-                        Editar Usuario
+                        Editar estado del usuario
                     </h2>
 
                     <p>

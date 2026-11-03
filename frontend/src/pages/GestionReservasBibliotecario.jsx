@@ -68,11 +68,17 @@ const GestionReservasBibliotecario = () => {
         }
     };
 
-    const confirmarReserva = async (id) => {
+    const confirmarReserva = async (reserva) => {
+        const horaInicio = String(reserva.hora_inicio || "").slice(0, 5);
+        const horaFin = String(reserva.hora_fin || "").slice(0, 5);
+        const inicio = new Date(`${reserva.fecha}T${horaInicio}:00-05:00`).getTime();
+        const fin = new Date(`${reserva.fecha}T${horaFin}:00-05:00`).getTime();
+        if (!Number.isFinite(inicio) || !Number.isFinite(fin) || Date.now() < inicio || Date.now() >= fin) {
+            alert("solo se puede confirmar la asistencia dentro del horario establecido de la reserva");
+            return;
+        }
         try {
-            await api(`/api/reservations/${id}/check-in`, {
-                method: "PATCH"
-            });
+            await api(`/api/reservations/${reserva.id}/check-in`, { method: "PATCH" });
             await obtenerReservas();
         } catch (error) {
             alert(error.message);
@@ -126,8 +132,6 @@ const GestionReservasBibliotecario = () => {
 
     return (
         <div className="page-container">
-            <h1 className="page-title">{esBibliotecario ? "Gestión de Reservas" : "Historial de Reservas"}</h1>
-
             <div className="page-actions">
                 <button
                     className="btn btn-danger btn-back"
@@ -136,6 +140,8 @@ const GestionReservasBibliotecario = () => {
                     Regresar
                 </button>
             </div>
+
+            <h1 className="page-title">{esBibliotecario ? "Gestión de Reservas" : "Historial de Reservas"}</h1>
 
             <hr className="section-divider" />
 
@@ -227,7 +233,7 @@ const GestionReservasBibliotecario = () => {
                                                 {reserva.estado === "activa" && (
                                                     <button
                                                         className="btn btn-success"
-                                                        onClick={() => confirmarReserva(reserva.id)}
+                                                        onClick={() => confirmarReserva(reserva)}
                                                     >
                                                         Confirmar Asistencia
                                                     </button>

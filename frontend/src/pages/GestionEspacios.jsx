@@ -146,6 +146,7 @@ const GestionEspacios = () => {
     setUbicacion(espacio.ubicacion);
     const bibliotecaActual = bibliotecas.find((item) => String(item.id) === String(espacio.biblioteca_id ?? espacio.biblioteca) || item.nombre === espacio.biblioteca);
     setBiblioteca(bibliotecaActual ? String(bibliotecaActual.id) : String(espacio.biblioteca_id ?? espacio.biblioteca));
+     document.getElementById("formulario-espacio")?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const actualizarEspacio = async (e) => {
@@ -194,10 +195,6 @@ const GestionEspacios = () => {
 
   return (
     <div className="page-container">
-      <h1 className="page-title">
-        Gestión de Espacios
-      </h1>
-
       <button
         className="btn btn-danger btn-back"
         onClick={() => navigate(-1)}
@@ -205,8 +202,13 @@ const GestionEspacios = () => {
         Regresar
       </button>
 
+      <h1 className="page-title">
+        Gestión de Espacios
+      </h1>
+
       {(!esBibliotecario || modoEdicion) && (
       <form
+        id="formulario-espacio"
         className="form-card formulario-gestion"
         onSubmit={modoEdicion ? actualizarEspacio : crearEspacio}
       >

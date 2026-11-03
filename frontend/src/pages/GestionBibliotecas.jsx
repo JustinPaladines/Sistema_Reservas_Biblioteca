@@ -78,6 +78,7 @@ const GestionBibliotecas = () => {
         setUbicacion(biblioteca.ubicacion);
         setHorarioApertura(biblioteca.horario_apertura);
         setHorarioCierre(biblioteca.horario_cierre);
+        document.getElementById("formulario-biblioteca")?.scrollIntoView({ behavior: "smooth", block: "start" });
     };
 
     const actualizarBiblioteca = async (e) => {
@@ -112,11 +113,11 @@ const GestionBibliotecas = () => {
 
     return (
         <div className="page-container">
-            <h1 className="page-title">Gestión de Bibliotecas</h1>
             <div className="page-actions">
                 <button className="btn btn-danger btn-back" onClick={() => navigate(-1)}>Regresar</button>
             </div>
-            <form className="form-card formulario-gestion" onSubmit={modoEdicion ? actualizarBiblioteca : crearBiblioteca}>
+            <h1 className="page-title">Gestión de Bibliotecas</h1>
+            <form id="formulario-biblioteca" className="form-card formulario-gestion" onSubmit={modoEdicion ? actualizarBiblioteca : crearBiblioteca}>
                 <input className="form-input" type="text" placeholder="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} />
                 <input className="form-input" type="text" placeholder="Ubicación" value={ubicacion} onChange={(e) => setUbicacion(e.target.value)} />
                 <label className="form-label">Horario de Apertura</label>
