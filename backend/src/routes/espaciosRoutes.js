@@ -115,6 +115,7 @@ router.get("/", async (req, res) => {
         await caducarReservasVencidas();
 
         const usuario = await obtenerBibliotecaDelUsuario(req);
+        if (!usuario) return res.status(403).json({ mensaje: "Usuario no autorizado." });
         let consulta = supabaseAdmin.from("espacios").select("*").order("id", { ascending: true });
         if (usuario && usuario.rol === "bibliotecario") {
             if (!usuario.biblioteca_id) return res.status(403).json({ mensaje: "No tienes una biblioteca asignada." });
