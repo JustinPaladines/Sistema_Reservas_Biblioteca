@@ -235,6 +235,19 @@ router.post("/", async (req, res) => {
 router.patch("/:id/sillas-compartidas", async (req, res) => {
     const { id } = req.params;
     const { accion } = req.body;
+    const usuario = await obtenerBibliotecaDelUsuario(req);
+
+    if (usuario && usuario.rol === "bibliotecario") {
+        const { data: espacio, error: espacioError } = await supabaseAdmin
+            .from("espacios")
+            .select("biblioteca_id")
+            .eq("id", id)
+            .maybeSingle();
+
+        if (espacioError || !espacio || Number(espacio.biblioteca_id) !== Number(usuario.biblioteca_id)) {
+            return res.status(403).json({ mensaje: "No puedes actualizar espacios de otra biblioteca." });
+        }
+    }
 
     if (!["ocupar", "liberar"].includes(accion)) {
         return res.status(400).json({ mensaje: "Acción no válida" });
@@ -258,12 +271,14 @@ router.patch("/:id/sillas-compartidas", async (req, res) => {
 
 router.put("/:id", async (req, res) => {
     const { id } = req.params;
+    const usuario = await obtenerBibliotecaDelUsuario(req);
+    let consulta = supabaseAdmin.from("espacios").update(req.body).eq("id", id);
 
-    const { data, error } = await supabaseAdmin
-        .from("espacios")
-        .update(req.body)
-        .eq("id", id)
-        .select();
+    if (usuario && usuario.rol === "bibliotecario") {
+        consulta = consulta.eq("biblioteca_id", usuario.biblioteca_id);
+    }
+
+    const { data, error } = await consulta.select();
 
     if (error) {
         return res.status(500).json({ mensaje: error.message });
@@ -274,11 +289,14 @@ router.put("/:id", async (req, res) => {
 
 router.delete("/:id", async (req, res) => {
     const { id } = req.params;
+    const usuario = await obtenerBibliotecaDelUsuario(req);
+    let consulta = supabaseAdmin.from("espacios").delete().eq("id", id);
 
-    const { error } = await supabaseAdmin
-        .from("espacios")
-        .delete()
-        .eq("id", id);
+    if (usuario && usuario.rol === "bibliotecario") {
+        consulta = consulta.eq("biblioteca_id", usuario.biblioteca_id);
+    }
+
+    const { error } = await consulta;
 
     if (error) {
         return res.status(500).json({ mensaje: error.message });
