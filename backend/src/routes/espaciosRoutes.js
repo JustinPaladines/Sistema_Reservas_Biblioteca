@@ -1,9 +1,21 @@
 // backend/src/routes/espaciosRoutes.js:
 const express = require("express");
 const router = express.Router();
-const { supabaseAdmin } = require("../supabaseClients");
+const { supabaseAdmin, supabaseAuth } = require("../supabaseClients");
 
 // caducar reservas que no fueron confirmadas dentro de los 15 minutos posteriores a su inicio
+
+async function obtenerBibliotecaDelUsuario(req) {
+    const header = req.headers.authorization || "";
+    const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+    if (!token) return null;
+    const { data: authData, error: authError } = await supabaseAuth.auth.getUser(token);
+    if (authError || !authData.user) return null;
+    const { data: usuario } = await supabaseAdmin.from("usuarios").select("rol, biblioteca_id, estado").eq("id", authData.user.id).maybeSingle();
+    if (!usuario || usuario.estado !== "activo") return null;
+    return usuario;
+}
+
 async function caducarReservasVencidas() {
     const { data: reservas, error } = await supabaseAdmin
         .from("reservas")
@@ -99,10 +111,13 @@ router.get("/", async (req, res) => {
     try {
         await caducarReservasVencidas();
 
-        const { data, error } = await supabaseAdmin
-            .from("espacios")
-            .select("*")
-            .order("id", { ascending: true });
+        const usuario = await obtenerBibliotecaDelUsuario(req);
+        let consulta = supabaseAdmin.from("espacios").select("*").order("id", { ascending: true });
+        if (usuario && usuario.rol === "bibliotecario") {
+            if (!usuario.biblioteca_id) return res.status(403).json({ mensaje: "No tienes una biblioteca asignada." });
+            consulta = consulta.eq("biblioteca_id", usuario.biblioteca_id);
+        }
+        const { data, error } = await consulta;
 
         if (error) {
             return res.status(500).json({ mensaje: error.message });
