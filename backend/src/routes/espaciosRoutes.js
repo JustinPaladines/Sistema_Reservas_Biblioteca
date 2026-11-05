@@ -308,22 +308,16 @@ router.delete("/:id", async (req, res) => {
     }
 
     const { id } = req.params;
-    const usuario = await obtenerBibliotecaDelUsuario(req);
-    let consulta = supabaseAdmin.from("espacios").delete().eq("id", id);
-
-    if (usuario && usuario.rol === "bibliotecario") {
-        consulta = consulta.eq("biblioteca_id", usuario.biblioteca_id);
-    }
-
-    const { error } = await consulta;
+    const { error } = await supabaseAdmin
+        .from("espacios")
+        .delete()
+        .eq("id", id);
 
     if (error) {
         return res.status(500).json({ mensaje: error.message });
     }
 
-    res.json({
-        mensaje: "Espacio eliminado correctamente"
-    });
+    res.json({ mensaje: "Espacio eliminado correctamente" });
 });
 
 module.exports = router;
