@@ -2,6 +2,9 @@
 const express = require("express");
 const router = express.Router();
 const { supabaseAdmin, supabaseAuth } = require("../supabaseClients");
+const verificarSupabaseToken = require("../authMiddleware");
+
+router.use(verificarSupabaseToken);
 
 // caducar reservas que no fueron confirmadas dentro de los 15 minutos posteriores a su inicio
 
