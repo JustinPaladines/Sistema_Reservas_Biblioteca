@@ -244,8 +244,11 @@ router.patch("/:id/sillas-compartidas", async (req, res) => {
     const { id } = req.params;
     const { accion } = req.body;
     const usuario = await obtenerBibliotecaDelUsuario(req);
+    if (!usuario || !["administrador", "bibliotecario"].includes(usuario.rol)) {
+        return res.status(403).json({ mensaje: "No tienes permisos para actualizar espacios compartidos." });
+    }
 
-    if (usuario && usuario.rol === "bibliotecario") {
+    if (usuario.rol === "bibliotecario") {
         const { data: espacio, error: espacioError } = await supabaseAdmin
             .from("espacios")
             .select("biblioteca_id")
@@ -280,6 +283,9 @@ router.patch("/:id/sillas-compartidas", async (req, res) => {
 router.put("/:id", async (req, res) => {
     const { id } = req.params;
     const usuario = await obtenerBibliotecaDelUsuario(req);
+    if (!usuario || !["administrador", "bibliotecario"].includes(usuario.rol)) {
+        return res.status(403).json({ mensaje: "No tienes permisos para actualizar espacios." });
+    }
     let consulta = supabaseAdmin.from("espacios").update(req.body).eq("id", id);
 
     if (usuario && usuario.rol === "bibliotecario") {
