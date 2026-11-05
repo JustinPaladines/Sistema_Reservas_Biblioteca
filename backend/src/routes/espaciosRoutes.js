@@ -198,6 +198,11 @@ router.get("/available", async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
+    const usuario = await obtenerBibliotecaDelUsuario(req);
+    if (!usuario || usuario.rol !== "administrador") {
+        return res.status(403).json({ mensaje: "Solo el administrador puede crear espacios." });
+    }
+
     const {
         nombre,
         descripcion,
@@ -291,6 +296,11 @@ router.put("/:id", async (req, res) => {
 });
 
 router.delete("/:id", async (req, res) => {
+    const usuario = await obtenerBibliotecaDelUsuario(req);
+    if (!usuario || usuario.rol !== "administrador") {
+        return res.status(403).json({ mensaje: "Solo el administrador puede eliminar espacios." });
+    }
+
     const { id } = req.params;
     const usuario = await obtenerBibliotecaDelUsuario(req);
     let consulta = supabaseAdmin.from("espacios").delete().eq("id", id);
