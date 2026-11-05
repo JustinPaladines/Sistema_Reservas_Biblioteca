@@ -346,3 +346,14 @@
         font-size: 10px;
     }
 }
+
+.usuarios-crear-accion {
+    display: flex;
+    justify-content: center;
+    margin: 0 0 24px;
+}
+
+#formulario-bibliotecario {
+    scroll-margin-top: 24px;
+    width: min(450px, 100%);
+}
