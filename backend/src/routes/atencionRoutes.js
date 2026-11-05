@@ -190,7 +190,8 @@ router.get("/reservas", async (req, res) => {
                 (reserva) =>
                     idsUsuarios.includes(reserva.usuario_id) ||
                     String(reserva.id).includes(texto) ||
-                    String(reserva.espacio_id).includes(texto)
+                    String(reserva.espacio_id).includes(texto) ||
+                    String(reserva.observacion || "").toLowerCase().includes(texto)
             );
         }
 
@@ -198,7 +199,7 @@ router.get("/reservas", async (req, res) => {
             ...new Set(
                 resultado.map(
                     (reserva) => reserva.usuario_id
-                )
+                ).filter(Boolean)
             )
         ];
 
@@ -269,11 +270,14 @@ router.patch("/reservas/:id/incidente", async (req, res) => {
 
         const { data: reserva, error: reservaError } = await supabaseAdmin
             .from("reservas")
-            .select("id, espacio_id")
+            .select("id, espacio_id, observacion")
             .eq("id", id)
             .maybeSingle();
 
         if (reservaError || !reserva) return res.status(404).json({ mensaje: "Reserva no encontrada." });
+        if (String(reserva.observacion || "").startsWith("Reserva_Compartida")) {
+            return res.status(409).json({ mensaje: "Las reservas compartidas se gestionan desde espacios compartidos." });
+        }
 
         if (req.usuario.rol === "bibliotecario") {
             const { data: espacio, error: espacioError } = await supabaseAdmin

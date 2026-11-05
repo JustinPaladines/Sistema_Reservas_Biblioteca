@@ -149,7 +149,7 @@ const GestionReservasBibliotecario = () => {
                 <input
                     className="form-input"
                     type="text"
-                    placeholder="Buscar estudiante, correo o reserva"
+                    placeholder="Buscar estudiante, responsable o reserva"
                     value={buscar}
                     onChange={(e) => setBuscar(e.target.value)}
                     onKeyDown={(e) => {
@@ -207,7 +207,7 @@ const GestionReservasBibliotecario = () => {
                                 <th>Fecha</th>
                                 <th>Hora inicio</th>
                                 <th>Hora fin</th>
-                                <th>Cantidad de estudiantes</th>
+                                <th>Cantidad registrada</th>
                                 <th>Estado</th>
                                 <th>Observación</th>
                                 {esBibliotecario && <th>Acciones</th>}
@@ -219,8 +219,8 @@ const GestionReservasBibliotecario = () => {
                                 reservas.map((reserva) => (
                                     <tr key={reserva.id}>
                                         <td>{reserva.id}</td>
-                                        <td>{reserva.usuario?.nombre || reserva.usuario_nombre || "Sin usuario"}</td>
-                                        <td>{reserva.usuario?.correo || reserva.usuario_correo || "Sin correo"}</td>
+                                        <td>{String(reserva.observacion || "").startsWith("Reserva_Compartida") ? `Reserva compartida · ${reserva.observacion.split("Responsable:")[1]?.trim() || "Sin responsable"}` : reserva.usuario?.nombre || reserva.usuario_nombre || "Sin usuario"}</td>
+                                        <td>{String(reserva.observacion || "").startsWith("Reserva_Compartida") ? "No aplica" : reserva.usuario?.correo || reserva.usuario_correo || "Sin correo"}</td>
                                         <td>{reserva.espacio?.nombre || reserva.espacio_nombre || reserva.espacio_id}</td>
                                         <td>{reserva.fecha}</td>
                                         <td>{reserva.hora_inicio}</td>
@@ -230,7 +230,7 @@ const GestionReservasBibliotecario = () => {
                                         <td>{reserva.observacion || "Sin observación"}</td>
                                         {esBibliotecario && <td>
                                             <div className="acciones-reserva">
-                                                {reserva.estado === "activa" && (
+                                                {!String(reserva.observacion || "").startsWith("Reserva_Compartida") && reserva.estado === "activa" && (
                                                     <button
                                                         className="btn btn-success"
                                                         onClick={() => confirmarReserva(reserva)}
@@ -239,7 +239,7 @@ const GestionReservasBibliotecario = () => {
                                                     </button>
                                                 )}
 
-                                                {reserva.estado === "en progreso" && (
+                                                {!String(reserva.observacion || "").startsWith("Reserva_Compartida") && reserva.estado === "en progreso" && (
                                                     <button
                                                         className="btn btn-primary"
                                                         onClick={() => finalizarReserva(reserva.id)}
@@ -248,12 +248,12 @@ const GestionReservasBibliotecario = () => {
                                                     </button>
                                                 )}
 
-                                                <button
+                                                {!String(reserva.observacion || "").startsWith("Reserva_Compartida") && <button
                                                     className="btn btn-success"
                                                     onClick={() => abrirIncidente(reserva)}
                                                 >
                                                     Registrar incidente
-                                                </button>
+                                                </button>}
                                             </div>
                                         </td>}
                                     </tr>

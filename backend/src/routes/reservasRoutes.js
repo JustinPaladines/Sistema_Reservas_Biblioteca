@@ -332,22 +332,18 @@ router.get("/", async (req, res) => {
         }
 
         const usuarioIds = [
-            ...new Set(reservas.map((reserva) => reserva.usuario_id))
+            ...new Set(reservas.map((reserva) => reserva.usuario_id).filter(Boolean))
         ];
 
         const espacioIds = [
             ...new Set(reservas.map((reserva) => reserva.espacio_id))
         ];
 
-        const { data: usuarios, error: usuariosError } = await supabaseAdmin
-            .from("usuarios")
-            .select("id, nombre, correo")
-            .in("id", usuarioIds);
-
-        if (usuariosError) {
-            return res.status(500).json({
-                mensaje: usuariosError.message
-            });
+        let usuarios = [];
+        if (usuarioIds.length) {
+            const { data, error: usuariosError } = await supabaseAdmin.from("usuarios").select("id, nombre, correo").in("id", usuarioIds);
+            if (usuariosError) return res.status(500).json({ mensaje: usuariosError.message });
+            usuarios = data || [];
         }
 
         const { data: espacios, error: espaciosError } = await supabaseAdmin
@@ -403,11 +399,11 @@ router.get("/:id", async (req, res) => {
             });
         }
 
-        const { data: usuario } = await supabaseAdmin
-            .from("usuarios")
-            .select("id, nombre, correo")
-            .eq("id", reserva.usuario_id)
-            .single();
+        let usuario = null;
+        if (reserva.usuario_id) {
+            const { data } = await supabaseAdmin.from("usuarios").select("id, nombre, correo").eq("id", reserva.usuario_id).maybeSingle();
+            usuario = data;
+        }
 
         const { data: espacio } = await supabaseAdmin
             .from("espacios")
@@ -542,12 +538,16 @@ router.patch("/:id/cancel", verificarBibliotecaBibliotecario, validarReservaDeBi
         // cambiar estado de la reserva
         const { data: reservaCompleta, error: consultaError } = await supabaseAdmin
             .from("reservas")
-            .select("espacio_id, cantidad_estudiantes, estado")
+            .select("espacio_id, cantidad_estudiantes, estado, observacion")
             .eq("id", id)
             .single();
 
         if (consultaError || !reservaCompleta) {
             return res.status(404).json({ mensaje: "Reserva no encontrada" });
+        }
+
+        if (String(reservaCompleta.observacion || "").startsWith("Reserva_Compartida")) {
+            return res.status(409).json({ mensaje: "Las reservas compartidas se gestionan desde espacios compartidos." });
         }
 
         if (!["activa", "en progreso"].includes(reservaCompleta.estado)) {
@@ -615,12 +615,16 @@ router.patch("/:id/finish", verificarBibliotecaBibliotecario, validarReservaDeBi
         // cambiar estado de la reserva
         const { data: reservaCompleta, error: consultaError } = await supabaseAdmin
             .from("reservas")
-            .select("espacio_id, cantidad_estudiantes, estado")
+            .select("espacio_id, cantidad_estudiantes, estado, observacion")
             .eq("id", id)
             .single();
 
         if (consultaError || !reservaCompleta) {
             return res.status(404).json({ mensaje: "Reserva no encontrada" });
+        }
+
+        if (String(reservaCompleta.observacion || "").startsWith("Reserva_Compartida")) {
+            return res.status(409).json({ mensaje: "Las reservas compartidas se gestionan desde espacios compartidos." });
         }
 
         if (!["activa", "en progreso"].includes(reservaCompleta.estado)) {
