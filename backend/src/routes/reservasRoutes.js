@@ -1,7 +1,62 @@
 //backend/src/routes/reservasRoutes.js
 const express = require("express");
 const router = express.Router();
-const { supabaseAdmin } = require("../supabaseClients");
+const { supabaseAdmin, supabaseAuth } = require("../supabaseClients");
+
+async function verificarBibliotecaBibliotecario(req, res, next) {
+    try {
+        const header = req.headers.authorization || "";
+        const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+        if (!token) return res.status(401).json({ mensaje: "Token requerido." });
+
+        const { data: authData, error: authError } = await supabaseAuth.auth.getUser(token);
+        if (authError || !authData.user) return res.status(401).json({ mensaje: "Token inválido." });
+
+        const { data: usuario } = await supabaseAdmin
+            .from("usuarios")
+            .select("id, rol, estado, biblioteca_id")
+            .eq("id", authData.user.id)
+            .maybeSingle();
+
+        if (!usuario || usuario.estado !== "activo") {
+            return res.status(403).json({ mensaje: "Usuario no autorizado." });
+        }
+        if (usuario.rol !== "bibliotecario" && usuario.rol !== "administrador") {
+            return res.status(403).json({ mensaje: "No tienes permisos para esta acción." });
+        }
+        req.usuario = usuario;
+        next();
+    } catch (error) {
+        return res.status(500).json({ mensaje: error.message });
+    }
+}
+
+async function validarReservaDeBiblioteca(req, res, next) {
+    if (req.usuario.rol !== "bibliotecario") return next();
+    try {
+        const { data: reserva } = await supabaseAdmin
+            .from("reservas")
+            .select("espacio_id")
+            .eq("id", req.params.id)
+            .maybeSingle();
+
+        if (!reserva) return res.status(404).json({ mensaje: "Reserva no encontrada." });
+
+        const { data: espacio } = await supabaseAdmin
+            .from("espacios")
+            .select("biblioteca_id")
+            .eq("id", reserva.espacio_id)
+            .maybeSingle();
+
+        if (!espacio || Number(espacio.biblioteca_id) !== Number(req.usuario.biblioteca_id)) {
+            return res.status(403).json({ mensaje: "No puedes realizar acciones en reservas de otra biblioteca." });
+        }
+        next();
+    } catch (error) {
+        return res.status(500).json({ mensaje: error.message });
+    }
+}
+
 
 // caducar reservas que no fueron confirmadas dentro de los 15 minutos posteriores a su inicio
 async function caducarReservasVencidas() {
@@ -420,7 +475,7 @@ router.put("/:id", async (req, res) => {
 });
 
 // iniciar una reserva activa
-router.patch("/:id/check-in", async (req, res) => {
+router.patch("/:id/check-in", verificarBibliotecaBibliotecario, validarReservaDeBiblioteca, async (req, res) => {
     try {
         await caducarReservasVencidas();
         const { id } = req.params;
@@ -480,7 +535,7 @@ router.patch("/:id/check-in", async (req, res) => {
 
 
 // Cancelar reserva
-router.patch("/:id/cancel", async (req, res) => {
+router.patch("/:id/cancel", verificarBibliotecaBibliotecario, validarReservaDeBiblioteca, async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -553,7 +608,7 @@ router.patch("/:id/cancel", async (req, res) => {
 });
 
 // Finalizar reserva
-router.patch("/:id/finish", async (req, res) => {
+router.patch("/:id/finish", verificarBibliotecaBibliotecario, validarReservaDeBiblioteca, async (req, res) => {
     try {
         const { id } = req.params;
 
