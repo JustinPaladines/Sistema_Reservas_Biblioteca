@@ -61,7 +61,7 @@ const verificarPersonalAutorizado = async (req, res, next) => {
     try {
         const { data: usuario, error } = await supabaseAdmin
             .from("usuarios")
-            .select("id, rol, estado")
+            .select("id, rol, estado, biblioteca_id")
             .eq("id", req.usuario.id)
             .single();
 
@@ -84,6 +84,10 @@ const verificarPersonalAutorizado = async (req, res, next) => {
             return res.status(403).json({
                 mensaje: "El usuario no está activo."
             });
+        }
+
+        if (usuario.rol === "bibliotecario" && !usuario.biblioteca_id) {
+            return res.status(403).json({ mensaje: "El bibliotecario no tiene una biblioteca asignada." });
         }
 
         req.usuario = usuario;
@@ -131,12 +135,32 @@ router.get("/reservas", async (req, res) => {
             query = query.eq("estado", estado);
         }
 
-        const { data: reservas, error } = await query;
+        const { data: reservasBase, error } = await query;
 
         if (error) {
             return res.status(500).json({
                 mensaje: error.message
             });
+        }
+
+        let reservas = reservasBase || [];
+
+        if (req.usuario.rol === "bibliotecario") {
+            const espaciosIds = [...new Set(reservas.map((reserva) => reserva.espacio_id))];
+            if (espaciosIds.length) {
+                const { data: espaciosBiblioteca, error: espaciosError } = await supabaseAdmin
+                    .from("espacios")
+                    .select("id")
+                    .in("id", espaciosIds)
+                    .eq("biblioteca_id", req.usuario.biblioteca_id);
+
+                if (espaciosError) return res.status(500).json({ mensaje: espaciosError.message });
+
+                const idsPermitidos = new Set((espaciosBiblioteca || []).map((espacio) => espacio.id));
+                reservas = reservas.filter((reserva) => idsPermitidos.has(reserva.espacio_id));
+            } else {
+                reservas = [];
+            }
         }
 
         let resultado = reservas;
@@ -243,11 +267,29 @@ router.patch("/reservas/:id/incidente", async (req, res) => {
             });
         }
 
+        const { data: reserva, error: reservaError } = await supabaseAdmin
+            .from("reservas")
+            .select("id, espacio_id")
+            .eq("id", id)
+            .maybeSingle();
+
+        if (reservaError || !reserva) return res.status(404).json({ mensaje: "Reserva no encontrada." });
+
+        if (req.usuario.rol === "bibliotecario") {
+            const { data: espacio, error: espacioError } = await supabaseAdmin
+                .from("espacios")
+                .select("biblioteca_id")
+                .eq("id", reserva.espacio_id)
+                .maybeSingle();
+
+            if (espacioError || !espacio || Number(espacio.biblioteca_id) !== Number(req.usuario.biblioteca_id)) {
+                return res.status(403).json({ mensaje: "No puedes registrar incidentes en otra biblioteca." });
+            }
+        }
+
         const { data, error } = await supabaseAdmin
             .from("reservas")
-            .update({
-                observacion: observacion.trim()
-            })
+            .update({ observacion: observacion.trim() })
             .eq("id", id)
             .select()
             .single();
