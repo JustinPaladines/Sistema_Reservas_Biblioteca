@@ -2,7 +2,7 @@
 
 const express = require("express");
 const router = express.Router();
-const { supabaseAdmin } = require("../supabaseClients");
+const { supabaseAdmin, supabaseAuth } = require("../supabaseClients");
 const verificarSupabaseToken = require("../authMiddleware");
 const verificarAdministrador = require("../adminMiddleware");
 
@@ -10,9 +10,104 @@ const ROLES_VALIDOS = ["administrador", "bibliotecario", "estudiante"];
 const ESTADOS_VALIDOS = ["activo", "suspendido", "bloqueado", "inactivo"];
 
 
-// rutas exclusivas para administrador (gestion de usuarios)
+// rutas exclusivas para administrador
 
 router.use(verificarAdministrador);
+
+router.post("/bibliotecarios", async (req, res) => {
+    let userId = null;
+
+    try {
+        const { nombre, correo, biblioteca_id } = req.body;
+        const email = String(correo || "").trim().toLowerCase();
+        const nombreLimpio = String(nombre || "").trim();
+
+        if (!nombreLimpio || !email || !biblioteca_id) {
+            return res.status(400).json({ mensaje: "Nombre, correo y biblioteca son obligatorios." });
+        }
+
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return res.status(400).json({ mensaje: "Ingresa un correo válido." });
+        }
+
+        const { data: biblioteca, error: bibliotecaError } = await supabaseAdmin
+            .from("bibliotecas")
+            .select("id, nombre, estado")
+            .eq("id", biblioteca_id)
+            .maybeSingle();
+
+        if (bibliotecaError || !biblioteca || String(biblioteca.estado || "").toLowerCase() !== "activa") {
+            return res.status(400).json({ mensaje: "Selecciona una biblioteca activa." });
+        }
+
+        const { data: existente } = await supabaseAdmin
+            .from("usuarios")
+            .select("id")
+            .eq("correo", email)
+            .maybeSingle();
+
+        if (existente) {
+            return res.status(409).json({ mensaje: "Ya existe un usuario con ese correo." });
+        }
+
+        const { data: cuenta, error: crearError } = await supabaseAdmin.auth.admin.createUser({
+            email,
+            email_confirm: true,
+            user_metadata: { nombre: nombreLimpio }
+        });
+
+        if (crearError || !cuenta?.user?.id) {
+            return res.status(400).json({ mensaje: crearError?.message || "No se pudo crear la cuenta." });
+        }
+
+        userId = cuenta.user.id;
+
+        const { error: perfilError } = await supabaseAdmin.from("usuarios").insert({
+            id: userId,
+            nombre: nombreLimpio,
+            correo: email,
+            rol: "bibliotecario",
+            estado: "activo",
+            biblioteca_id: Number(biblioteca_id)
+        });
+
+        if (perfilError) {
+            await supabaseAdmin.auth.admin.deleteUser(userId);
+            return res.status(500).json({ mensaje: "No se pudo guardar el perfil del bibliotecario." });
+        }
+
+        const { error: correoError } = await supabaseAuth.auth.resetPasswordForEmail(email, {
+            redirectTo: "https://roomly-despliegue-svd6.vercel.app/ActualizarContrasena"
+        });
+
+        if (correoError) {
+            await supabaseAdmin.from("usuarios").delete().eq("id", userId);
+            await supabaseAdmin.auth.admin.deleteUser(userId);
+            return res.status(500).json({
+                mensaje: "No se pudo enviar el correo para establecer la contraseña.",
+                detalle: correoError.message
+            });
+        }
+
+        return res.status(201).json({
+            mensaje: "Bibliotecario creado y correo enviado para establecer la contraseña.",
+            usuario: {
+                id: userId,
+                nombre: nombreLimpio,
+                correo: email,
+                rol: "bibliotecario",
+                estado: "activo",
+                biblioteca_id: Number(biblioteca_id)
+            }
+        });
+    } catch (error) {
+        if (userId) {
+            await supabaseAdmin.from("usuarios").delete().eq("id", userId);
+            await supabaseAdmin.auth.admin.deleteUser(userId);
+        }
+        return res.status(500).json({ mensaje: error.message });
+    }
+});
 
 router.get("/", async (req, res) => {
     try {
