@@ -4,6 +4,7 @@ import api from "../services/api";
 import "../styles/global.css";
 
 const fechaEcuador = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Guayaquil", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+const horaEcuador = () => new Intl.DateTimeFormat("en-GB", { timeZone: "America/Guayaquil", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date());
 
 const EspaciosCompartidos = () => {
     const navigate = useNavigate();
@@ -26,9 +27,15 @@ const EspaciosCompartidos = () => {
                     String(r.observacion || "").startsWith("Reserva_Compartida") &&
                     r.estado === "en progreso"
                 );
-                const reservasEstudiantes = reservasHoy.filter((r) =>
-                    r.estado === "activa" && r.usuario_id
-                );
+                const horaActual = horaEcuador();
+                const reservasEstudiantes = reservasHoy.filter((r) => {
+                    const inicio = String(r.hora_inicio || "").slice(0, 5);
+                    const fin = String(r.hora_fin || "").slice(0, 5);
+                    return r.estado === "activa" &&
+                        Boolean(r.usuario_id) &&
+                        inicio <= horaActual &&
+                        fin > horaActual;
+                });
                 const reservadasPorEspacio = reservasEstudiantes.reduce((acumulado, reserva) => {
                     const espacioId = reserva.espacio_id;
                     acumulado[espacioId] = (acumulado[espacioId] || 0) + Number(reserva.cantidad_estudiantes || 1);
@@ -107,12 +114,12 @@ const EspaciosCompartidos = () => {
             {loading ? <p>Cargando espacios...</p> : <>
                 <p>Total de sillas registradas: {totalSillas}</p>
                 <p>Sillas ocupadas temporalmente: {sillasOcupadas}</p>
-                <p>Sillas reservadas por estudiantes: {sillasApartadas}</p>
+                <p>Sillas reservadas ahora por estudiantes: {sillasApartadas}</p>
                 <div className="table-container">
                     <table className="data-table">
                         <thead><tr>
                             <th>Espacio</th><th>Total de sillas</th><th>Ocupadas temporalmente</th>
-                            <th>Reservadas por estudiantes</th><th>Disponibles</th><th>Responsable</th><th>Hora de finalización</th><th>Acciones</th>
+                            <th>Reservadas ahora por estudiantes</th><th>Disponibles</th><th>Responsable</th><th>Hora de finalización</th><th>Acciones</th>
                         </tr></thead>
                         <tbody>
                             {espacios.map((espacio) => {
