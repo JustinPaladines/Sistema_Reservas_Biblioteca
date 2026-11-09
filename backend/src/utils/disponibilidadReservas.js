@@ -1,6 +1,6 @@
 function convertirHoraAMinutos(hora) {
     const valor = String(hora || "").slice(0, 5);
-    if (!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(valor)) return null;
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(valor)) return null;
     const [horas, minutos] = valor.split(":").map(Number);
     return horas * 60 + minutos;
 }
