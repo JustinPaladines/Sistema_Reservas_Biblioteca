@@ -1,0 +1,191 @@
+/* src/styles/loginCard.css */
+
+/* PALETA DE COLORES: Variables para mantener la consistencia visual en la tarjeta */
+:root {
+  --verde-principal: #22C55E;
+  --verde-hover: #16A34A;
+  --morado-principal: #7C3AED;
+  --morado-pastel: #EDE9FE;
+  --fondo-principal: #F8FAFC;
+  --blanco-cards: #FFFFFF;
+  --texto-principal: #1E293B;
+  --texto-secundario: #64748B;
+  --bordes: #E2E8F0;
+  
+  --alerta-exito-bg: #DCFCE7;
+  --alerta-exito-texto: #14532D;
+  --alerta-error-bg: #FEE2E2;
+  --alerta-error-texto: #991B1B;
+}
+
+/* CONTENEDOR FLOTANTE: Estructura, tamaño y sombra del logincard */
+.card-wrapper {
+  width: 100%;
+  max-width: 440px;
+  background-color: var(--blanco-cards);
+  border-radius: 24px;
+  box-shadow: 0 10px 30px rgba(30, 41, 59, 0.04);
+  padding: 48px 40px;
+}
+
+/* ENCABEZADO: Estilos para el título y subtítulo de la tarjeta */
+.card-header {
+  margin-bottom: 28px;
+}
+
+.card-title {
+  color: var(--morado-principal);
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.card-subtitle {
+  color: var(--texto-secundario);
+  font-size: 15px;
+}
+
+/* CAMPOS DE ENTRADA: Estructura de los formularios, etiquetas y cajas de texto */
+.form-group-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--texto-principal);
+}
+
+.input-field {
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 15px;
+  border: 1px solid var(--bordes);
+  border-radius: 12px;
+  color: var(--texto-principal);
+  background-color: var(--blanco-cards);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: var(--morado-principal);
+  box-shadow: 0 0 0 3px var(--morado-pastel);
+}
+
+/* CAMPO DE CONTRASEÑA: Posicionamiento del icono para ocultar o mostrar contraseña*/
+.input-field-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-field-wrapper .input-field {
+  padding-right: 48px; 
+}
+
+.toggle-password-btn {
+  position: absolute;
+  right: 14px;
+  background: none;
+  border: none;
+  color: var(--texto-secundario);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}
+
+.toggle-password-btn:hover {
+  color: var(--morado-principal);
+}
+
+/* OPCIONES ADICIONALES: Enlace para recuperar la contraseña */
+.options-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -8px;
+}
+
+.forgot-password-link {
+  font-size: 14px;
+  color: var(--morado-principal);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.forgot-password-link:hover {
+  text-decoration: underline;
+}
+
+/* BOTONES DE ACCIÓN: Estilos para iniciar sesión  y registrarse  */
+.action-buttons-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.primary-btn {
+  width: 100%;
+  padding: 14px;
+  background-color: var(--verde-principal);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.primary-btn:hover {
+  background-color: var(--verde-hover);
+}
+
+.secondary-btn {
+  width: 100%;
+  padding: 14px;
+  background-color: transparent;
+  color: var(--morado-principal);
+  border: 1px solid var(--morado-principal);
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.secondary-btn:hover {
+  background-color: var(--morado-pastel);
+}
+
+/* MENSAJES DE FEEDBACK: Cajas de alerta informativas para errores o procesos exitosos */
+.message-box {
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 20px;
+}
+
+.message-error {
+  background-color: var(--alerta-error-bg);
+  color: var(--alerta-error-texto);
+  border: 1px solid #FCA5A5;
+}
+
+.message-success {
+  background-color: var(--alerta-exito-bg);
+  color: var(--alerta-exito-texto);
+  border: 1px solid #86EFAC;
+}
