@@ -2,6 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const { supabaseAdmin, supabaseAuth } = require("../supabaseClients");
+const { tieneCapacidadDisponible } = require("../utils/disponibilidadReservas");
 const verificarSupabaseToken = require("../authMiddleware");
 
 router.use(verificarSupabaseToken);
@@ -150,6 +151,10 @@ router.get("/available", async (req, res) => {
         const inicio = String(hora_inicio || "").slice(0, 5);
         const fin = String(hora_fin || "").slice(0, 5);
 
+        if (tieneHorario && (!/^([01]\d|2[0-3]):[0-5]\d$/.test(inicio) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(fin))) {
+            return res.status(400).json({ mensaje: "Indica un horario válido." });
+        }
+
         if (tieneHorario && fin <= inicio) {
             return res.status(400).json({
                 mensaje: "La hora de fin debe ser posterior a la hora de inicio."
@@ -172,7 +177,7 @@ router.get("/available", async (req, res) => {
 
         const { data: reservas, error: reservasError } = await supabaseAdmin
             .from("reservas")
-            .select("espacio_id, hora_inicio, hora_fin")
+            .select("espacio_id, hora_inicio, hora_fin, cantidad_estudiantes")
             .eq("fecha", fecha)
             .in("estado", ["activa", "en progreso"]);
 
@@ -180,19 +185,24 @@ router.get("/available", async (req, res) => {
             return res.status(500).json({ mensaje: reservasError.message });
         }
 
-        const espaciosOcupados = new Set(
-            (reservas || [])
-                .filter((reserva) => {
-                    const inicioExistente = String(reserva.hora_inicio || "").slice(0, 5);
-                    const finExistente = String(reserva.hora_fin || "").slice(0, 5);
-                    return !finExistente || (inicio < finExistente && fin > inicioExistente);
-                })
-                .map((reserva) => Number(reserva.espacio_id))
-        );
+        const cantidadSolicitada = Number(req.query.cantidad_estudiantes || 1);
+        if (!Number.isInteger(cantidadSolicitada) || cantidadSolicitada < 1) {
+            return res.status(400).json({ mensaje: "La cantidad de estudiantes no es válida." });
+        }
 
-        return res.json(
-            espacios.filter((espacio) => !espaciosOcupados.has(Number(espacio.id)))
-        );
+        return res.json(espacios.filter((espacio) => {
+            const reservasEspacio = (reservas || []).filter(
+                (reserva) => Number(reserva.espacio_id) === Number(espacio.id)
+            );
+
+            return tieneCapacidadDisponible(
+                espacio.capacidad,
+                reservasEspacio,
+                inicio,
+                fin,
+                cantidadSolicitada
+            );
+        }));
     } catch (error) {
         return res.status(500).json({ mensaje: error.message });
     }
@@ -260,12 +270,31 @@ router.patch("/:id/sillas-compartidas", async (req, res) => {
         const fecha = `${parte("year")}-${parte("month")}-${parte("day")}`;
         const horaActual = `${parte("hour")}:${parte("minute")}`;
 
-        const { data: compartidas, error: compartidasError } = await supabaseAdmin.from("reservas").select("id, cantidad_estudiantes").eq("espacio_id", Number(id)).eq("fecha", fecha).eq("estado", "en progreso").ilike("observacion", "Reserva_Compartida%").order("id", { ascending: false }).limit(1);
+        const { data: compartidas, error: compartidasError } = await supabaseAdmin.from("reservas").select("id, cantidad_estudiantes, hora_inicio, hora_fin").eq("espacio_id", Number(id)).eq("fecha", fecha).eq("estado", "en progreso").ilike("observacion", "Reserva_Compartida%").order("id", { ascending: false }).limit(1);
         if (compartidasError) return res.status(500).json({ mensaje: compartidasError.message });
         const reserva = compartidas?.[0] || null;
         const contador = (accionContador) => supabaseAdmin.rpc("actualizar_sillas_compartidas", { espacio_id_param: Number(id), accion_param: accionContador });
 
         if (accion === "ocupar" && reserva) {
+            const { data: reservasActuales, error: reservasActualesError } = await supabaseAdmin
+                .from("reservas")
+                .select("hora_inicio, hora_fin, cantidad_estudiantes")
+                .eq("espacio_id", Number(id))
+                .eq("fecha", fecha)
+                .in("estado", ["activa", "en progreso"]);
+
+            if (reservasActualesError) return res.status(500).json({ mensaje: reservasActualesError.message });
+            const finReservaCompartida = String(reserva.hora_fin || "").slice(0, 5);
+            if (!tieneCapacidadDisponible(
+                espacio.capacidad,
+                reservasActuales || [],
+                horaActual,
+                finReservaCompartida,
+                1
+            )) {
+                return res.status(409).json({ mensaje: "No hay suficientes sillas disponibles para ampliar la ocupación compartida." });
+            }
+
             const { error } = await contador("ocupar");
             if (error) return res.status(error.message.includes("sillas disponibles") ? 400 : 500).json({ mensaje: error.message });
             const cantidad = Number(reserva.cantidad_estudiantes || 1);
@@ -289,14 +318,11 @@ router.patch("/:id/sillas-compartidas", async (req, res) => {
             const cierre = String(biblioteca.horario_cierre || "").slice(0, 5);
             if (!apertura || !cierre || horaActual < apertura || fin > cierre) return res.status(400).json({ mensaje: "El horario compartido debe estar dentro del horario de atención de la biblioteca." });
 
-            const { data: existentes, error: existentesError } = await supabaseAdmin.from("reservas").select("hora_inicio, hora_fin").eq("espacio_id", Number(id)).eq("fecha", fecha).in("estado", ["activa", "en progreso"]);
+            const { data: existentes, error: existentesError } = await supabaseAdmin.from("reservas").select("hora_inicio, hora_fin, cantidad_estudiantes").eq("espacio_id", Number(id)).eq("fecha", fecha).in("estado", ["activa", "en progreso"]);
             if (existentesError) return res.status(500).json({ mensaje: existentesError.message });
-            const cruce = (existentes || []).some((r) => {
-                const inicioExistente = String(r.hora_inicio || "").slice(0, 5);
-                const finExistente = String(r.hora_fin || "").slice(0, 5);
-                return !finExistente || (horaActual < finExistente && fin > inicioExistente);
-            });
-            if (cruce) return res.status(409).json({ mensaje: "El espacio tiene una reserva que coincide con ese horario." });
+            if (!tieneCapacidadDisponible(espacio.capacidad, existentes || [], horaActual, fin, 1)) {
+                return res.status(409).json({ mensaje: "No hay suficientes sillas disponibles en ese horario para la ocupación compartida." });
+            }
 
             const { data: nueva, error: crearError } = await supabaseAdmin.from("reservas").insert([{
                 usuario_id: null, espacio_id: Number(id), fecha, hora_inicio: horaActual, hora_fin: fin,
