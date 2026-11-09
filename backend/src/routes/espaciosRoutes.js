@@ -2,7 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const { supabaseAdmin, supabaseAuth } = require("../supabaseClients");
-const { tieneCapacidadDisponible } = require("../utils/disponibilidadReservas");
+const { calcularOcupacionMaxima, tieneCapacidadDisponible } = require("../utils/disponibilidadReservas");
 const verificarSupabaseToken = require("../authMiddleware");
 
 router.use(verificarSupabaseToken);
@@ -175,6 +175,11 @@ router.get("/available", async (req, res) => {
             return res.json(espacios || []);
         }
 
+        const cantidadSolicitada = Number(req.query.cantidad_estudiantes || 1);
+        if (!Number.isInteger(cantidadSolicitada) || cantidadSolicitada < 1) {
+            return res.status(400).json({ mensaje: "La cantidad de estudiantes no es válida." });
+        }
+
         const { data: reservas, error: reservasError } = await supabaseAdmin
             .from("reservas")
             .select("espacio_id, hora_inicio, hora_fin, cantidad_estudiantes")
@@ -185,24 +190,25 @@ router.get("/available", async (req, res) => {
             return res.status(500).json({ mensaje: reservasError.message });
         }
 
-        const cantidadSolicitada = Number(req.query.cantidad_estudiantes || 1);
-        if (!Number.isInteger(cantidadSolicitada) || cantidadSolicitada < 1) {
-            return res.status(400).json({ mensaje: "La cantidad de estudiantes no es válida." });
-        }
-
-        return res.json(espacios.filter((espacio) => {
+        const espaciosConDisponibilidad = (espacios || []).map((espacio) => {
             const reservasEspacio = (reservas || []).filter(
                 (reserva) => Number(reserva.espacio_id) === Number(espacio.id)
             );
+            const ocupacion = calcularOcupacionMaxima(reservasEspacio, inicio, fin);
+            const sillasDisponibles = Math.max(0, Number(espacio.capacidad || 0) - ocupacion);
 
-            return tieneCapacidadDisponible(
-                espacio.capacidad,
-                reservasEspacio,
-                inicio,
-                fin,
-                cantidadSolicitada
-            );
-        }));
+            return {
+                ...espacio,
+                sillas_ocupadas_horario: ocupacion,
+                sillas_disponibles: sillasDisponibles
+            };
+        });
+
+        return res.json(
+            espaciosConDisponibilidad.filter(
+                (espacio) => espacio.sillas_disponibles >= cantidadSolicitada
+            )
+        );
     } catch (error) {
         return res.status(500).json({ mensaje: error.message });
     }
