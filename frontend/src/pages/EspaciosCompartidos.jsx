@@ -35,7 +35,30 @@ const EspaciosCompartidos = () => {
         }
     };
 
-    useEffect(() => { obtenerEspacios(); }, []);
+    useEffect(() => {
+        obtenerEspacios();
+
+        const intervalo = window.setInterval(() => {
+            if (document.visibilityState === "visible") {
+                obtenerEspacios();
+            }
+        }, 15000);
+
+        const actualizarAlVolver = () => {
+            if (document.visibilityState === "visible") {
+                obtenerEspacios();
+            }
+        };
+
+        document.addEventListener("visibilitychange", actualizarAlVolver);
+        window.addEventListener("focus", actualizarAlVolver);
+
+        return () => {
+            window.clearInterval(intervalo);
+            document.removeEventListener("visibilitychange", actualizarAlVolver);
+            window.removeEventListener("focus", actualizarAlVolver);
+        };
+    }, []);
 
     const actualizarSillas = async (id, accion, datos = {}) => {
         try {
