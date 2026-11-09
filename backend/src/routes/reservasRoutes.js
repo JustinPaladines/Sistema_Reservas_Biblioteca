@@ -2,6 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const { supabaseAdmin, supabaseAuth } = require("../supabaseClients");
+const { tieneCapacidadDisponible } = require("../utils/disponibilidadReservas");
 
 async function verificarBibliotecaBibliotecario(req, res, next) {
     try {
@@ -168,6 +169,10 @@ router.post("/", async (req, res) => {
             });
         }
 
+        if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(inicio) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(fin)) {
+            return res.status(400).json({ mensaje: "Indica un horario válido." });
+        }
+
         if (fin <= inicio) {
             return res.status(400).json({
                 mensaje: "La hora de fin debe ser posterior a la hora de inicio."
@@ -270,7 +275,7 @@ router.post("/", async (req, res) => {
 
         const { data: reservasEspacio, error: reservasEspacioError } = await supabaseAdmin
             .from("reservas")
-            .select("id, hora_inicio, hora_fin")
+            .select("id, hora_inicio, hora_fin, cantidad_estudiantes")
             .eq("espacio_id", espacio_id)
             .eq("fecha", fecha)
             .in("estado", ["activa", "en progreso"]);
@@ -279,15 +284,15 @@ router.post("/", async (req, res) => {
             return res.status(500).json({ mensaje: reservasEspacioError.message });
         }
 
-        const hayCruce = (reservasEspacio || []).some((reserva) => {
-            const inicioExistente = String(reserva.hora_inicio || "").slice(0, 5);
-            const finExistente = String(reserva.hora_fin || "").slice(0, 5);
-            return !finExistente || (inicio < finExistente && fin > inicioExistente);
-        });
-
-        if (hayCruce) {
+        if (!tieneCapacidadDisponible(
+            espacio.capacidad,
+            reservasEspacio || [],
+            inicio,
+            fin,
+            cantidad
+        )) {
             return res.status(409).json({
-                mensaje: "El espacio ya tiene una reserva en ese horario. Selecciona otro horario."
+                mensaje: "No hay suficientes sillas disponibles en ese horario. Selecciona otro horario o reduce la cantidad de estudiantes."
             });
         }
 
