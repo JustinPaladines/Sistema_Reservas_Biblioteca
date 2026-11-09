@@ -1,9 +1,3 @@
-/* src/styles/actualizarContrasena.css */
-
-/* 
-   1. CONTENEDOR PRINCIPAL
-   Ocupa toda la pantalla y centra el formulario
-    */
 .actualizar-container {
   width: 100vw;
   min-height: 100vh;
@@ -17,10 +11,6 @@
   padding: 20px;
 }
 
-/*
-   2. ESTRUCTURA DEL FORMULARIO
-   Controla el ancho máximo y el espacio entre elementos
-    */
 .actualizar-form {
   display: flex;
   flex-direction: column;
@@ -29,9 +19,6 @@
   max-width: 320px;
 }
 
-/* 
-   3. ESTILOS DEL TÍTULO
-  */
 .actualizar-title {
   font-size: 1.75rem;
   font-weight: bold;
@@ -40,13 +27,16 @@
   text-align: center;
 }
 
-/* 
-   4. CAMPOS DE ENTRADA (INPUTS) y sus Estados
-   Diseño de la caja de texto y su efecto visual al hacer clic
-    */
+.actualizar-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
 .actualizar-input {
+  width: 100%;
+  box-sizing: border-box;
   border: 1px solid #E5E7EB;
-  padding: 0.75rem 1rem;
+  padding: 0.75rem 3rem 0.75rem 1rem;
   border-radius: 10px;
   color: #000;
   font-size: 0.875rem;
@@ -59,10 +49,31 @@
   border-color: #6D28D9;
 }
 
-/* 
-   5. BOTÓN DE ACCIÓN y sus Estados
-   Diseño base (verde), efecto hover (pasar el mouse) y deshabilitado
-    */
+.actualizar-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.75rem;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #6B7280;
+  cursor: pointer;
+}
+
+.actualizar-toggle:hover {
+  color: #6D28D9;
+}
+
+.actualizar-toggle:focus-visible {
+  outline: 2px solid #6D28D9;
+  outline-offset: 2px;
+}
+
 .actualizar-button {
   background-color: #22C55E;
   color: #ffffff;
@@ -84,10 +95,6 @@
   cursor: not-allowed;
 }
 
-/* 
-   6. TEXTO DE NOTIFICACIÓN / MENSAJES
-   Alertas informativas que aparecen debajo del botón
-   */
 .actualizar-mensaje {
   margin-top: 0.5rem;
   font-size: 0.875rem;
