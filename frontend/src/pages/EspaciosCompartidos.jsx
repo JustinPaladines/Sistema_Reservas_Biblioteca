@@ -9,6 +9,7 @@ const EspaciosCompartidos = () => {
     const navigate = useNavigate();
     const [espacios, setEspacios] = useState([]);
     const [reservasCompartidas, setReservasCompartidas] = useState({});
+    const [sillasReservadas, setSillasReservadas] = useState({});
     const [loading, setLoading] = useState(true);
     const [espacioSeleccionado, setEspacioSeleccionado] = useState(null);
     const [responsable, setResponsable] = useState("");
@@ -20,13 +21,24 @@ const EspaciosCompartidos = () => {
             setEspacios(data);
             try {
                 const reservas = await api("/api/atencion/reservas");
-                const activas = (reservas || []).filter((r) =>
+                const reservasHoy = (reservas || []).filter((r) => r.fecha === fechaEcuador());
+                const activas = reservasHoy.filter((r) =>
                     String(r.observacion || "").startsWith("Reserva_Compartida") &&
-                    r.estado === "en progreso" && r.fecha === fechaEcuador()
+                    r.estado === "en progreso"
                 );
+                const reservasEstudiantes = reservasHoy.filter((r) =>
+                    r.estado === "activa" && r.usuario_id
+                );
+                const reservadasPorEspacio = reservasEstudiantes.reduce((acumulado, reserva) => {
+                    const espacioId = reserva.espacio_id;
+                    acumulado[espacioId] = (acumulado[espacioId] || 0) + Number(reserva.cantidad_estudiantes || 1);
+                    return acumulado;
+                }, {});
                 setReservasCompartidas(Object.fromEntries(activas.map((r) => [r.espacio_id, r])));
+                setSillasReservadas(reservadasPorEspacio);
             } catch {
                 setReservasCompartidas({});
+                setSillasReservadas({});
             }
         } catch (error) {
             alert(error.message);
@@ -85,6 +97,7 @@ const EspaciosCompartidos = () => {
 
     const totalSillas = espacios.reduce((t, e) => t + Number(e.capacidad || 0), 0);
     const sillasOcupadas = espacios.reduce((t, e) => t + Number(e.sillas_ocupadas_externas || 0), 0);
+    const sillasApartadas = Object.values(sillasReservadas).reduce((total, cantidad) => total + cantidad, 0);
 
     return (
         <div className="page-container">
@@ -93,29 +106,32 @@ const EspaciosCompartidos = () => {
             <hr className="section-divider" />
             {loading ? <p>Cargando espacios...</p> : <>
                 <p>Total de sillas registradas: {totalSillas}</p>
-                <p>Sillas ocupadas por personas sin acceso al sistema: {sillasOcupadas}</p>
+                <p>Sillas ocupadas temporalmente: {sillasOcupadas}</p>
+                <p>Sillas reservadas por estudiantes: {sillasApartadas}</p>
                 <div className="table-container">
                     <table className="data-table">
                         <thead><tr>
                             <th>Espacio</th><th>Total de sillas</th><th>Ocupadas temporalmente</th>
-                            <th>Disponibles</th><th>Responsable</th><th>Hora de finalización</th><th>Acciones</th>
+                            <th>Reservadas por estudiantes</th><th>Disponibles</th><th>Responsable</th><th>Hora de finalización</th><th>Acciones</th>
                         </tr></thead>
                         <tbody>
                             {espacios.map((espacio) => {
                                 const total = Number(espacio.capacidad || 0);
                                 const ocupadas = Number(espacio.sillas_ocupadas_externas || 0);
+                                const reservadas = Number(sillasReservadas[espacio.id] || 0);
+                                const noDisponibles = ocupadas + reservadas;
                                 const reserva = reservasCompartidas[espacio.id];
                                 const nombre = reserva?.observacion?.split("Responsable:")[1]?.trim();
                                 return <tr key={espacio.id}>
-                                    <td>{espacio.nombre}</td><td>{total}</td><td>{ocupadas}</td>
-                                    <td>{Math.max(0, total - ocupadas)}</td><td>{nombre || "—"}</td>
+                                    <td>{espacio.nombre}</td><td>{total}</td><td>{ocupadas}</td><td>{reservadas}</td>
+                                    <td>{Math.max(0, total - noDisponibles)}</td><td>{nombre || "—"}</td>
                                     <td>{reserva?.hora_fin || "—"}</td><td>
-                                        <button className="btn btn-primary" onClick={() => ocuparSilla(espacio)} disabled={ocupadas >= total}>Ocupar silla</button>{" "}
+                                        <button className="btn btn-primary" onClick={() => ocuparSilla(espacio)} disabled={noDisponibles >= total}>Ocupar silla</button>{" "}
                                         <button className="btn btn-success" onClick={() => actualizarSillas(espacio.id, "liberar")} disabled={ocupadas <= 0}>Liberar silla</button>
                                     </td>
                                 </tr>;
                             })}
-                            {!espacios.length && <tr><td colSpan="7">No hay espacios registrados.</td></tr>}
+                            {!espacios.length && <tr><td colSpan="8">No hay espacios registrados.</td></tr>}
                         </tbody>
                     </table>
                 </div>
