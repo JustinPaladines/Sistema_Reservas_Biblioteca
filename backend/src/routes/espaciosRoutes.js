@@ -13,7 +13,11 @@ async function obtenerBibliotecaDelUsuario(req) {
         if (!token) return null;
         const { data: authData, error: authError } = await supabaseAuth.auth.getUser(token);
         if (authError || !authData.user) return null;
-        const { data: usuario } = await supabaseAdmin.from("usuarios").select("rol, biblioteca_id, estado").eq("id", authData.user.id).maybeSingle();
+        const { data: usuario } = await supabaseAdmin
+            .from("usuarios")
+            .select("rol, biblioteca_id, estado")
+            .eq("id", authData.user.id)
+            .maybeSingle();
         if (!usuario) return null;
         return usuario;
     } catch (e) {
@@ -21,7 +25,7 @@ async function obtenerBibliotecaDelUsuario(req) {
     }
 }
 
-// Caducar reservas de forma segura sin tumbar las peticiones del servidor
+// Caducar reservas de forma segura sin tumbar las peticiones HTTP del servidor
 async function caducarReservasVencidas() {
     try {
         const { data: reservas, error } = await supabaseAdmin
@@ -94,7 +98,7 @@ async function caducarReservasVencidas() {
     }
 }
 
-// Obtener todos los espacios
+// GET /api/espacios (Obtener catálogo de espacios)
 router.get("/", async (req, res) => {
     try {
         await caducarReservasVencidas();
@@ -117,7 +121,7 @@ router.get("/", async (req, res) => {
     }
 });
 
-// Obtener espacios disponibles para estudiantes
+// GET /api/espacios/available (Obtener espacios disponibles filtrados por fecha y hora)
 router.get("/available", async (req, res) => {
     try {
         await caducarReservasVencidas();
@@ -190,15 +194,36 @@ router.get("/available", async (req, res) => {
     }
 });
 
-// Recomendación inteligente de espacios
+// GET /api/espacios/recomendaciones (Motor de recomendación inteligente con zona horaria de Ecuador)
 router.get("/recomendaciones", async (req, res) => {
     try {
         await caducarReservasVencidas();
 
         const { biblioteca_id, fecha } = req.query;
 
-        const hoyStr = new Date().toISOString().split("T")[0];
-        const fechaObjetivo = fecha || hoyStr;
+        // Formatear la fecha y hora actual en la zona horaria de Ecuador (America/Guayaquil)
+        const partesEcuador = new Intl.DateTimeFormat("en-CA", {
+            timeZone: "America/Guayaquil",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            hourCycle: "h23"
+        }).formatToParts(new Date());
+
+        const getParte = (tipo) => partesEcuador.find((p) => p.type === tipo)?.value || "";
+        const hoyEcuador = `${getParte("year")}-${getParte("month")}-${getParte("day")}`;
+        const horaEcuadorInt = parseInt(getParte("hour"), 10);
+
+        const fechaObjetivo = fecha || hoyEcuador;
+
+        // Validar si la fecha solicitada ya pasó
+        if (fechaObjetivo < hoyEcuador) {
+            return res.status(200).json({
+                disponible: false,
+                mensaje: "La fecha seleccionada ya ha transcurrido."
+            });
+        }
 
         let queryBiblio = supabaseAdmin
             .from("bibliotecas")
@@ -221,17 +246,10 @@ router.get("/recomendaciones", async (req, res) => {
         const apertura = Number(String(biblioElegida.horario_apertura || "08:00").slice(0, 2));
         const cierre = Number(String(biblioElegida.horario_cierre || "17:00").slice(0, 2));
 
-        // Obtener hora actual en Ecuador de forma robusta
         let horaInicioBusqueda = apertura;
-        if (fechaObjetivo === hoyStr) {
-            const horaEcuadorStr = new Intl.DateTimeFormat("en-US", {
-                timeZone: "America/Guayaquil",
-                hour: "numeric",
-                hour12: false
-            }).format(new Date());
-            const horaActualInt = parseInt(horaEcuadorStr, 10);
-            if (!isNaN(horaActualInt)) {
-                horaInicioBusqueda = Math.max(apertura, horaActualInt + 1);
+        if (fechaObjetivo === hoyEcuador) {
+            if (!isNaN(horaEcuadorInt)) {
+                horaInicioBusqueda = Math.max(apertura, horaEcuadorInt + 1);
             }
         }
 
@@ -275,7 +293,7 @@ router.get("/recomendaciones", async (req, res) => {
 
             for (const esp of espacios) {
                 const ocupadosEnHora = (reservas || [])
-                    .filter((r) => r.espacio_id === esp.id)
+                    .filter((r) => Number(r.espacio_id) === Number(esp.id))
                     .filter((r) => {
                         const rInicio = String(r.hora_inicio || "").slice(0, 5);
                         const rFin = String(r.hora_fin || "").slice(0, 5);
@@ -329,6 +347,7 @@ router.get("/recomendaciones", async (req, res) => {
     }
 });
 
+// POST /api/espacios (Creación de espacios)
 router.post("/", async (req, res) => {
     const usuario = await obtenerBibliotecaDelUsuario(req);
     if (!usuario || usuario.rol !== "administrador") {
@@ -350,6 +369,7 @@ router.post("/", async (req, res) => {
     res.status(201).json(data);
 });
 
+// PATCH /api/espacios/:id/sillas-compartidas
 router.patch("/:id/sillas-compartidas", async (req, res) => {
     try {
         await caducarReservasVencidas();
@@ -451,6 +471,7 @@ router.patch("/:id/sillas-compartidas", async (req, res) => {
     }
 });
 
+// PUT /api/espacios/:id
 router.put("/:id", async (req, res) => {
     const { id } = req.params;
     const usuario = await obtenerBibliotecaDelUsuario(req);
@@ -468,6 +489,7 @@ router.put("/:id", async (req, res) => {
     res.json(data);
 });
 
+// DELETE /api/espacios/:id
 router.delete("/:id", async (req, res) => {
     const usuario = await obtenerBibliotecaDelUsuario(req);
     if (!usuario || usuario.rol !== "administrador") {
