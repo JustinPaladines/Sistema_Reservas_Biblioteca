@@ -194,8 +194,20 @@ router.get("/available", async (req, res) => {
             const reservasEspacio = (reservas || []).filter(
                 (reserva) => Number(reserva.espacio_id) === Number(espacio.id)
             );
-            const ocupacion = calcularOcupacionMaxima(reservasEspacio, inicio, fin);
-            const sillasDisponibles = Math.max(0, Number(espacio.capacidad || 0) - ocupacion);
+            const ocupacion = calcularOcupacionMaxima(
+                reservasEspacio,
+                inicio,
+                fin
+            );
+
+            const sillasExternas = Number(
+                espacio.sillas_ocupadas_externas || 0
+            );
+
+            const sillasDisponibles = Math.max(
+                0,
+                Number(espacio.capacidad || 0) - ocupacion - sillasExternas
+            );
 
             return {
                 ...espacio,
@@ -213,6 +225,162 @@ router.get("/available", async (req, res) => {
         return res.status(500).json({ mensaje: error.message });
     }
 });
+
+
+//recomendacion de espacios
+router.get("/recomendaciones", async (req, res) => {
+    try {
+        // 1. Actualizar estados de reservas caducadas antes de procesar
+        if (typeof caducarReservasVencidas === "function") {
+            await caducarReservasVencidas();
+        }
+
+        const { biblioteca_id, fecha } = req.query;
+
+        // 2. Determinar la fecha de consulta (Hoy por defecto en formato YYYY-MM-DD)
+        const hoyStr = new Date().toISOString().split("T")[0];
+        const fechaObjetivo = fecha || hoyStr;
+
+        // 3. Consultar bibliotecas activas
+        let queryBiblio = supabaseAdmin
+            .from("bibliotecas")
+            .select("id, nombre, horario_apertura, horario_cierre, estado");
+
+        if (biblioteca_id) {
+            queryBiblio = queryBiblio.eq("id", biblioteca_id);
+        }
+
+        const { data: bibliotecas, error: errorBiblio } = await queryBiblio;
+
+        if (errorBiblio || !bibliotecas || bibliotecas.length === 0) {
+            return res.status(404).json({
+                disponible: false,
+                mensaje: "No se encontraron bibliotecas disponibles."
+            });
+        }
+
+        // Seleccionar la biblioteca objetivo (la especificada o la primera activa)
+        const biblioElegida = bibliotecas[0];
+        const apertura = Number(String(biblioElegida.horario_apertura || "08:00").slice(0, 2));
+        const cierre = Number(String(biblioElegida.horario_cierre || "17:00").slice(0, 2));
+
+        // 4. Control de horario si la reserva es para EL DÍA DE HOY
+        let horaInicioBusqueda = apertura;
+        if (fechaObjetivo === hoyStr) {
+            // Obtener hora actual en zona horaria local (Ecuador GMT-5)
+            const horaActualLocal = new Date().toLocaleTimeString("en-US", {
+                timeZone: "America/Guayaquil",
+                hour12: false,
+                hour: "2-digit"
+            });
+            const horaActualInt = parseInt(horaActualLocal, 10);
+
+            // Iniciar búsqueda a partir de la siguiente hora disponible
+            horaInicioBusqueda = Math.max(apertura, horaActualInt + 1);
+        }
+
+        // Validar si la biblioteca ya cerró por el día de hoy
+        if (horaInicioBusqueda >= cierre) {
+            return res.status(200).json({
+                disponible: false,
+                mensaje: "La biblioteca se encuentra cerrada para el resto del día de hoy."
+            });
+        }
+
+        // 5. Obtener los espacios habilitados de la biblioteca
+        const { data: espacios, error: errorEspacios } = await supabaseAdmin
+            .from("espacios")
+            .select("id, nombre, descripcion, capacidad, ubicacion, sillas_ocupadas_externas")
+            .eq("biblioteca_id", biblioElegida.id)
+            .neq("estado", "mantenimiento");
+
+        if (errorEspacios || !espacios || espacios.length === 0) {
+            return res.status(404).json({
+                disponible: false,
+                mensaje: "No hay espacios disponibles en la biblioteca seleccionada."
+            });
+        }
+
+        // 6. Obtener las reservas activas en la fecha solicitada para evaluar ocupación
+        const espacioIds = espacios.map((e) => e.id);
+        const { data: reservas, error: errorReservas } = await supabaseAdmin
+            .from("reservas")
+            .select("espacio_id, hora_inicio, hora_fin, cantidad_estudiantes")
+            .in("espacio_id", espacioIds)
+            .eq("fecha", fechaObjetivo)
+            .in("estado", ["activa", "en progreso"]);
+
+        if (errorReservas) throw errorReservas;
+
+        // 7. Algoritmo de selección: Encontrar la franja con mayor número de lugares libres
+        let mejorEspacio = null;
+        let mejorHora = horaInicioBusqueda;
+        let mayorLugaresLibres = -1;
+
+        for (let h = horaInicioBusqueda; h < cierre; h++) {
+            const horaStr = String(h).padStart(2, "0") + ":00";
+            const horaFinStr = String(h + 1).padStart(2, "0") + ":00";
+
+            for (const esp of espacios) {
+                // Sumar los cupos ocupados en esta franja horaria específica
+                const ocupadosEnHora = (reservas || [])
+                    .filter((r) => r.espacio_id === esp.id)
+                    .filter((r) => {
+                        const rInicio = String(r.hora_inicio || "").slice(0, 5);
+                        const rFin = String(r.hora_fin || "").slice(0, 5);
+                        return horaStr < rFin && horaFinStr > rInicio;
+                    })
+                    .reduce((sum, r) => sum + Number(r.cantidad_estudiantes || 1), 0);
+
+                const sillasExternas = Number(esp.sillas_ocupadas_externas || 0);
+                const libres = Math.max(0, Number(esp.capacidad) - ocupadosEnHora - sillasExternas);
+
+                if (libres > mayorLugaresLibres) {
+                    mayorLugaresLibres = libres;
+                    mejorEspacio = esp;
+                    mejorHora = h;
+                }
+            }
+        }
+
+        // Si no hay cupos libres en ninguna franja horaria
+        if (!mejorEspacio || mayorLugaresLibres <= 0) {
+            return res.status(200).json({
+                disponible: false,
+                mensaje: "No hay espacios con disponibilidad suficiente para la fecha seleccionada."
+            });
+        }
+
+        const horaInicioRec = String(mejorHora).padStart(2, "0") + ":00";
+        const horaFinRec = String(mejorHora + 1).padStart(2, "0") + ":00";
+
+        // 8. Respuesta estructurada para Android (mapea directamente con RecommendationDto)
+        return res.json({
+            disponible: true,
+            biblioteca_id: biblioElegida.id,
+            biblioteca_nombre: biblioElegida.nombre,
+            espacio_id: mejorEspacio.id,
+            espacio_nombre: mejorEspacio.nombre,
+            espacio_descripcion: mejorEspacio.descripcion,
+            fecha: fechaObjetivo,
+            hora_inicio: horaInicioRec,
+            hora_fin: horaFinRec,
+            disponibles: mayorLugaresLibres,
+            capacidad: mejorEspacio.capacidad,
+            mensaje: `Te sugerimos ${mejorEspacio.nombre} a las ${horaInicioRec} (${mayorLugaresLibres} lugar(es) disponible(s)).`
+        });
+
+    } catch (error) {
+        console.error("Error en /api/espacios/recomendaciones:", error);
+        return res.status(500).json({
+            disponible: false,
+            mensaje: "Error interno al calcular la recomendación.",
+            error: error.message
+        });
+    }
+});
+
+
 
 router.post("/", async (req, res) => {
     const usuario = await obtenerBibliotecaDelUsuario(req);
