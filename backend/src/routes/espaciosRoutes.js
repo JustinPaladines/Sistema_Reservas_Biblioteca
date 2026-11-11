@@ -121,7 +121,7 @@ router.get("/", async (req, res) => {
     }
 });
 
-// GET /api/espacios/available (Disponibilidad basada exactamente en el horario consultado)
+// GET /api/espacios/available (Disponibilidad limpia por fecha u horario)
 router.get("/available", async (req, res) => {
     try {
         await caducarReservasVencidas();
@@ -154,14 +154,14 @@ router.get("/available", async (req, res) => {
                 (reserva) => Number(reserva.espacio_id) === Number(espacio.id)
             );
             
-            // Ocupación en el horario [inicio, fin]
+            // Ocupación calculada estrictamente para la fecha y rango de hora consultado
             const ocupacion = calcularOcupacionMaxima(reservasEspacio, inicio, fin);
-            
-            //  reservas compartidas ya están incluidas en ocupación por horario, no se resta doble vez
             const sillasDisponibles = Math.max(0, Number(espacio.capacidad || 0) - ocupacion);
 
             return {
                 ...espacio,
+                // Overwrite para evitar que Android use la variable estática del día actual en fechas futuras
+                sillas_ocupadas_externas: ocupacion,
                 sillas_ocupadas_horario: ocupacion,
                 sillas_disponibles: sillasDisponibles
             };
