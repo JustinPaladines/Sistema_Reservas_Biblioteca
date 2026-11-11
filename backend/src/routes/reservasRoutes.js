@@ -60,7 +60,7 @@ async function validarReservaDeBiblioteca(req, res, next) {
     }
 }
 
-// Caducar reservas vencidas de forma segura
+// Caducar reservas vencidas de forma segura sin interrumpir la ejecución
 async function caducarReservasVencidas() {
     try {
         const { data: reservas, error } = await supabaseAdmin
@@ -150,7 +150,7 @@ router.post("/", async (req, res) => {
             cantidad_estudiantes
         } = req.body;
 
-        // Extraer el usuario desde el Token JWT si no viene en el body
+        // Extraer usuario desde el Token JWT si no viene en el cuerpo de la solicitud
         const header = req.headers.authorization || "";
         const token = header.startsWith("Bearer ") ? header.slice(7) : null;
         if (!usuario_id && token) {
@@ -414,7 +414,8 @@ router.get("/user/:usuario_id", async (req, res) => {
     }
 });
 
-// 🟢 DELETE /api/reservas/:id (CANCELAR RESERVA DESDE LA APP MÓVIL ESTUDIANTE)
+// 🟢 DELETE /api/reservas/:id (CANCELAR RESERVA MÓVIL ESTUDIANTE)
+// Mapea directamente con la llamada Retrofit @DELETE("api/reservas/{id}")
 router.delete("/:id", async (req, res) => {
     try {
         await caducarReservasVencidas();
@@ -438,6 +439,7 @@ router.delete("/:id", async (req, res) => {
             return res.status(409).json({ mensaje: "La reserva ya no está activa." });
         }
 
+        // 🟢 .maybeSingle() garantiza retornar un Objeto JSON {}, evitando errores de parseo Array [] en Retrofit/Android
         const { data, error } = await supabaseAdmin
             .from("reservas")
             .update({
@@ -446,7 +448,8 @@ router.delete("/:id", async (req, res) => {
             })
             .eq("id", id)
             .in("estado", ["activa", "en progreso"])
-            .select();
+            .select()
+            .maybeSingle();
 
         if (error) return res.status(500).json({ mensaje: error.message });
 
@@ -470,7 +473,7 @@ router.delete("/:id", async (req, res) => {
             }
         }
 
-        return res.json(data);
+        return res.json(data || { mensaje: "Reserva cancelada correctamente." });
     } catch (error) {
         return res.status(500).json({ mensaje: error.message });
     }
