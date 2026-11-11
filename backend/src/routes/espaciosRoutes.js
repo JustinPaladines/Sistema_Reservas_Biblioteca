@@ -121,7 +121,8 @@ router.get("/", async (req, res) => {
     }
 });
 
-// GET /api/espacios/available (Obtener espacios disponibles filtrados por fecha y hora)
+
+// GET /api/espacios/available (Corregido: devuelve todos los espacios sin borrar los llenos)
 router.get("/available", async (req, res) => {
     try {
         await caducarReservasVencidas();
@@ -129,24 +130,8 @@ router.get("/available", async (req, res) => {
         const { fecha, hora_inicio, hora_fin } = req.query;
         const tieneHorario = Boolean(fecha || hora_inicio || hora_fin);
 
-        if (tieneHorario && (!fecha || !hora_inicio || !hora_fin)) {
-            return res.status(400).json({
-                mensaje: "Para consultar disponibilidad debe indicar fecha, hora de inicio y hora de fin."
-            });
-        }
-
         const inicio = String(hora_inicio || "").slice(0, 5);
         const fin = String(hora_fin || "").slice(0, 5);
-
-        if (tieneHorario && (!/^([01]\d|2[0-3]):[0-5]\d$/.test(inicio) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(fin))) {
-            return res.status(400).json({ mensaje: "Indica un horario válido." });
-        }
-
-        if (tieneHorario && fin <= inicio) {
-            return res.status(400).json({
-                mensaje: "La hora de fin debe ser posterior a la hora de inicio."
-            });
-        }
 
         const { data: espacios, error: espaciosError } = await supabaseAdmin
             .from("espacios")
@@ -155,13 +140,7 @@ router.get("/available", async (req, res) => {
             .order("id", { ascending: true });
 
         if (espaciosError) return res.status(500).json({ mensaje: espaciosError.message });
-
         if (!tieneHorario || !espacios?.length) return res.json(espacios || []);
-
-        const cantidadSolicitada = Number(req.query.cantidad_estudiantes || 1);
-        if (!Number.isInteger(cantidadSolicitada) || cantidadSolicitada < 1) {
-            return res.status(400).json({ mensaje: "La cantidad de estudiantes no es válida." });
-        }
 
         const { data: reservas, error: reservasError } = await supabaseAdmin
             .from("reservas")
@@ -186,9 +165,8 @@ router.get("/available", async (req, res) => {
             };
         });
 
-        return res.json(
-            espaciosConDisponibilidad.filter((espacio) => espacio.sillas_disponibles >= cantidadSolicitada)
-        );
+        // Android se encarga de mostrar si está disponible o lleno)
+        return res.json(espaciosConDisponibilidad);
     } catch (error) {
         return res.status(500).json({ mensaje: error.message });
     }

@@ -198,20 +198,35 @@ router.post("/", async (req, res) => {
             });
         }
 
-        const { data: reservaUsuario, error: reservaUsuarioError } = await supabaseAdmin
+        // VALIDACIÓN DE RESERVAS ACTIVAS CORREGIDA (Sin falsos positivos)
+        const { data: reservasActivasUsuario, error: reservaUsuarioError } = await supabaseAdmin
             .from("reservas")
-            .select("id")
+            .select("id, fecha, hora_fin, estado")
             .eq("usuario_id", usuario_id)
             .in("estado", ["activa", "en progreso"])
-            .limit(1);
+            .gte("fecha", fecha);
 
         if (reservaUsuarioError) {
             return res.status(500).json({ mensaje: reservaUsuarioError.message });
         }
 
-        if (reservaUsuario?.length) {
+        const tieneReservaVigente = (reservasActivasUsuario || []).some(reserva => {
+            if (reserva.fecha > fecha) return true;
+            
+            const finStr = String(reserva.hora_fin || "").slice(0, 5);
+            const ahoraStr = new Date().toLocaleTimeString("es-EC", { 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                hour12: false, 
+                timeZone: "America/Guayaquil" 
+            });
+            
+            return finStr > ahoraStr;
+        });
+
+        if (tieneReservaVigente) {
             return res.status(409).json({
-                mensaje: "Ya tienes una reserva activa. Finalízala antes de crear otra."
+                mensaje: "Ya tienes una reserva activa para este horario o una fecha futura. Cancélala antes de pedir otra."
             });
         }
 
@@ -414,8 +429,7 @@ router.get("/user/:usuario_id", async (req, res) => {
     }
 });
 
-// 🟢 DELETE /api/reservas/:id (CANCELAR RESERVA MÓVIL ESTUDIANTE)
-// Mapea directamente con la llamada Retrofit @DELETE("api/reservas/{id}")
+// /api/reservas/:id (CANCELAR RESERVA MÓVIL ESTUDIANTE)
 router.delete("/:id", async (req, res) => {
     try {
         await caducarReservasVencidas();
@@ -439,7 +453,6 @@ router.delete("/:id", async (req, res) => {
             return res.status(409).json({ mensaje: "La reserva ya no está activa." });
         }
 
-        // 🟢 .maybeSingle() garantiza retornar un Objeto JSON {}, evitando errores de parseo Array [] en Retrofit/Android
         const { data, error } = await supabaseAdmin
             .from("reservas")
             .update({
