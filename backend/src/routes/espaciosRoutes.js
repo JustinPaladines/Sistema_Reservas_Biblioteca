@@ -25,7 +25,7 @@ async function obtenerBibliotecaDelUsuario(req) {
     }
 }
 
-// Caducar reservas de forma segura sin tumbar las peticiones HTTP del servidor
+// Caducar reservas vencidas de forma segura
 async function caducarReservasVencidas() {
     try {
         const { data: reservas, error } = await supabaseAdmin
@@ -121,8 +121,7 @@ router.get("/", async (req, res) => {
     }
 });
 
-
-// GET /api/espacios/available (Corregido: devuelve todos los espacios sin borrar los llenos)
+// GET /api/espacios/available (Disponibilidad basada exactamente en el horario consultado)
 router.get("/available", async (req, res) => {
     try {
         await caducarReservasVencidas();
@@ -154,9 +153,12 @@ router.get("/available", async (req, res) => {
             const reservasEspacio = (reservas || []).filter(
                 (reserva) => Number(reserva.espacio_id) === Number(espacio.id)
             );
+            
+            // Ocupación en el horario [inicio, fin]
             const ocupacion = calcularOcupacionMaxima(reservasEspacio, inicio, fin);
-            const sillasExternas = Number(espacio.sillas_ocupadas_externas || 0);
-            const sillasDisponibles = Math.max(0, Number(espacio.capacidad || 0) - ocupacion - sillasExternas);
+            
+            //  reservas compartidas ya están incluidas en ocupación por horario, no se resta doble vez
+            const sillasDisponibles = Math.max(0, Number(espacio.capacidad || 0) - ocupacion);
 
             return {
                 ...espacio,
@@ -165,21 +167,19 @@ router.get("/available", async (req, res) => {
             };
         });
 
-        // Android se encarga de mostrar si está disponible o lleno)
         return res.json(espaciosConDisponibilidad);
     } catch (error) {
         return res.status(500).json({ mensaje: error.message });
     }
 });
 
-// GET /api/espacios/recomendaciones (Motor de recomendación inteligente con zona horaria de Ecuador)
+// GET /api/espacios/recomendaciones (Motor de recomendación inteligente)
 router.get("/recomendaciones", async (req, res) => {
     try {
         await caducarReservasVencidas();
 
         const { biblioteca_id, fecha } = req.query;
 
-        // Formatear la fecha y hora actual en la zona horaria de Ecuador (America/Guayaquil)
         const partesEcuador = new Intl.DateTimeFormat("en-CA", {
             timeZone: "America/Guayaquil",
             year: "numeric",
@@ -195,7 +195,6 @@ router.get("/recomendaciones", async (req, res) => {
 
         const fechaObjetivo = fecha || hoyEcuador;
 
-        // Validar si la fecha solicitada ya pasó
         if (fechaObjetivo < hoyEcuador) {
             return res.status(200).json({
                 disponible: false,
@@ -279,8 +278,8 @@ router.get("/recomendaciones", async (req, res) => {
                     })
                     .reduce((sum, r) => sum + Number(r.cantidad_estudiantes || 1), 0);
 
-                const sillasExternas = Number(esp.sillas_ocupadas_externas || 0);
-                const libres = Math.max(0, Number(esp.capacidad) - ocupadosEnHora - sillasExternas);
+                // cálculo de libres ajustado al rango de horas
+                const libres = Math.max(0, Number(esp.capacidad) - ocupadosEnHora);
 
                 if (libres > mayorLugaresLibres) {
                     mayorLugaresLibres = libres;
