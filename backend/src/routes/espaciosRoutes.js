@@ -132,6 +132,8 @@ router.get("/available", async (req, res) => {
         const inicio = String(hora_inicio || "").slice(0, 5);
         const fin = String(hora_fin || "").slice(0, 5);
 
+
+        
         const { data: espacios, error: espaciosError } = await supabaseAdmin
             .from("espacios")
             .select("*")
