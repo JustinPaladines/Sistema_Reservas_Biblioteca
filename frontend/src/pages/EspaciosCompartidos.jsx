@@ -94,6 +94,17 @@ const EspaciosCompartidos = () => {
     const ocuparSilla = (espacio) => {
         if (reservasCompartidas[espacio.id]) return actualizarSillas(espacio.id, "ocupar");
         setEspacioSeleccionado(espacio);
+        window.setTimeout(() => document.getElementById("formulario-espacio-compartido")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+    };
+
+    const actualizarEstado = async (id, estado) => {
+        try {
+            await api(`/api/espacios/${id}/estado`, { method: "PATCH", body: JSON.stringify({ estado }) });
+            await obtenerEspacios();
+        } catch (error) {
+            alert(error.message);
+            await obtenerEspacios();
+        }
     };
 
     const registrarReserva = (e) => {
@@ -119,7 +130,7 @@ const EspaciosCompartidos = () => {
                     <table className="data-table">
                         <thead><tr>
                             <th>Espacio</th><th>Total de sillas</th><th>Ocupadas temporalmente</th>
-                            <th>Reservadas ahora por estudiantes</th><th>Disponibles</th><th>Responsable</th><th>Hora de finalización</th><th>Acciones</th>
+                            <th>Reservadas ahora por estudiantes</th><th>Disponibles</th><th>Responsable</th><th>Hora de finalización</th><th>Estado</th><th>Acciones</th>
                         </tr></thead>
                         <tbody>
                             {espacios.map((espacio) => {
@@ -132,18 +143,27 @@ const EspaciosCompartidos = () => {
                                 return <tr key={espacio.id}>
                                     <td>{espacio.nombre}</td><td>{total}</td><td>{ocupadas}</td><td>{reservadas}</td>
                                     <td>{Math.max(0, total - noDisponibles)}</td><td>{nombre || "—"}</td>
-                                    <td>{reserva?.hora_fin || "—"}</td><td>
-                                        <button className="btn btn-primary" onClick={() => ocuparSilla(espacio)} disabled={noDisponibles >= total}>Ocupar silla</button>{" "}
-                                        <button className="btn btn-success" onClick={() => actualizarSillas(espacio.id, "liberar")} disabled={ocupadas <= 0}>Liberar silla</button>
+                                    <td>{reserva?.hora_fin || "—"}</td>
+                                    <td>
+                                        <select className="form-input" value={espacio.estado === "mantenimiento" ? "mantenimiento" : "disponible"}
+                                            onChange={(e) => actualizarEstado(espacio.id, e.target.value)}
+                                            disabled={!["disponible", "mantenimiento"].includes(espacio.estado)}>
+                                            <option value="disponible">Disponible</option>
+                                            <option value="mantenimiento">Mantenimiento</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <button className="btn btn-primary" onClick={() => ocuparSilla(espacio)} disabled={espacio.estado === "mantenimiento" || noDisponibles >= total}>Ocupar silla</button>{" "}
+                                        <button className="btn btn-success" onClick={() => actualizarSillas(espacio.id, "liberar")} disabled={espacio.estado === "mantenimiento" || ocupadas <= 0}>Liberar silla</button>
                                     </td>
                                 </tr>;
                             })}
-                            {!espacios.length && <tr><td colSpan="8">No hay espacios registrados.</td></tr>}
+                            {!espacios.length && <tr><td colSpan="9">No hay espacios registrados.</td></tr>}
                         </tbody>
                     </table>
                 </div>
             </>}
-            {espacioSeleccionado && <form className="form-card formulario-gestion" onSubmit={registrarReserva}>
+            {espacioSeleccionado && <form id="formulario-espacio-compartido" className="form-card formulario-gestion" onSubmit={registrarReserva}>
                 <h2>Registrar espacio compartido</h2>
                 <p><strong>Espacio:</strong> {espacioSeleccionado.nombre}</p>
                 <label htmlFor="responsable-compartido">Nombre de la persona responsable</label>
