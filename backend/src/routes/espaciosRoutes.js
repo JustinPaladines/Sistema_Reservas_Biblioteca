@@ -1,4 +1,5 @@
 const express = require("express");
+const caducarReservasVencidas = require("../utils/caducidadReservas");
 const router = express.Router();
 const { supabaseAdmin, supabaseAuth } = require("../supabaseClients");
 const { calcularOcupacionMaxima, tieneCapacidadDisponible } = require("../utils/disponibilidadReservas");
@@ -25,79 +26,6 @@ async function obtenerBibliotecaDelUsuario(req) {
     }
 }
 
-// Caducar reservas vencidas de forma segura
-async function caducarReservasVencidas() {
-    try {
-        const { data: reservas, error } = await supabaseAdmin
-            .from("reservas")
-            .select("id, espacio_id, fecha, hora_inicio, cantidad_estudiantes")
-            .eq("estado", "activa");
-
-        if (error || !reservas) return;
-
-        const ahora = Date.now();
-        const margen = 15 * 60 * 1000;
-
-        for (const reserva of reservas) {
-            const hora = String(reserva.hora_inicio || "").slice(0, 8);
-            const horaCompleta = hora.length === 5 ? `${hora}:00` : hora;
-            const inicio = new Date(`${reserva.fecha}T${horaCompleta}-05:00`).getTime();
-
-            if (!Number.isFinite(inicio) || ahora < inicio + margen) continue;
-
-            await supabaseAdmin
-                .from("reservas")
-                .update({ estado: "caducada", finalizada_at: new Date().toISOString() })
-                .eq("id", reserva.id)
-                .eq("estado", "activa");
-        }
-
-        const { data: reservasTerminadas } = await supabaseAdmin
-            .from("reservas")
-            .select("id, espacio_id, fecha, hora_fin, cantidad_estudiantes")
-            .eq("estado", "en progreso")
-            .not("hora_fin", "is", null);
-
-        for (const reserva of reservasTerminadas || []) {
-            const fin = String(reserva.hora_fin || "").slice(0, 8);
-            const finCompleto = fin.length === 5 ? `${fin}:00` : fin;
-            const finReserva = new Date(`${reserva.fecha}T${finCompleto}-05:00`).getTime();
-
-            if (!Number.isFinite(finReserva) || ahora < finReserva) continue;
-
-            const { data: finalizada } = await supabaseAdmin
-                .from("reservas")
-                .update({ estado: "finalizada", finalizada_at: new Date().toISOString() })
-                .eq("id", reserva.id)
-                .eq("estado", "en progreso")
-                .select("id")
-                .maybeSingle();
-
-            if (!finalizada) continue;
-
-            const { data: espacioActual } = await supabaseAdmin
-                .from("espacios")
-                .select("sillas_ocupadas_externas")
-                .eq("id", reserva.espacio_id)
-                .maybeSingle();
-
-            if (espacioActual) {
-                await supabaseAdmin
-                    .from("espacios")
-                    .update({
-                        sillas_ocupadas_externas: Math.max(
-                            0,
-                            Number(espacioActual.sillas_ocupadas_externas || 0) - Number(reserva.cantidad_estudiantes || 1)
-                        )
-                    })
-                    .eq("id", reserva.espacio_id);
-            }
-        }
-    } catch (err) {
-        console.error("Aviso en caducarReservasVencidas:", err.message);
-    }
-}
-
 // GET /api/espacios (Obtener catálogo de espacios)
 router.get("/", async (req, res) => {
     try {
@@ -110,6 +38,7 @@ router.get("/", async (req, res) => {
             if (!usuario.biblioteca_id) return res.status(403).json({ mensaje: "No tienes una biblioteca asignada." });
             consulta = consulta.eq("biblioteca_id", usuario.biblioteca_id);
         }
+        if (usuario && usuario.rol === "estudiante") consulta = consulta.neq("estado", "mantenimiento");
 
         const { data, error } = await consulta;
 
@@ -346,6 +275,39 @@ router.post("/", async (req, res) => {
 
     if (error) return res.status(500).json({ mensaje: error.message });
     res.status(201).json(data);
+});
+
+router.patch("/:id/estado", async (req, res) => {
+    try {
+        const usuario = await obtenerBibliotecaDelUsuario(req);
+        if (!usuario || usuario.estado !== "activo" || usuario.rol !== "bibliotecario" || !usuario.biblioteca_id) {
+            return res.status(403).json({ mensaje: "Solo un bibliotecario activo puede modificar el estado de su biblioteca." });
+        }
+        const id = Number(req.params.id);
+        const estado = String(req.body.estado || "");
+        if (!Number.isInteger(id) || id <= 0 || !["disponible", "mantenimiento"].includes(estado)) {
+            return res.status(400).json({ mensaje: "Indica un espacio y un estado válidos." });
+        }
+        const { data: espacio, error: espacioError } = await supabaseAdmin.from("espacios")
+            .select("id, biblioteca_id, estado, sillas_ocupadas_externas").eq("id", id).maybeSingle();
+        if (espacioError || !espacio) return res.status(404).json({ mensaje: espacioError?.message || "Espacio no encontrado." });
+        if (Number(espacio.biblioteca_id) !== Number(usuario.biblioteca_id)) return res.status(403).json({ mensaje: "No puedes modificar espacios de otra biblioteca." });
+        if (!["disponible", "mantenimiento"].includes(espacio.estado)) return res.status(409).json({ mensaje: "El estado actual del espacio no permite este cambio." });
+        if (espacio.estado === estado) return res.json(espacio);
+        if (estado === "mantenimiento") {
+            const { data: reservas, error: reservasError } = await supabaseAdmin.from("reservas")
+                .select("id").eq("espacio_id", id).in("estado", ["activa", "en progreso"]).limit(1);
+            if (reservasError) return res.status(500).json({ mensaje: reservasError.message });
+            if (reservas?.length || Number(espacio.sillas_ocupadas_externas || 0) > 0) {
+                return res.status(409).json({ mensaje: "No se puede enviar a mantenimiento un espacio con reservas u ocupaciones activas." });
+            }
+        }
+        const { data, error } = await supabaseAdmin.from("espacios").update({ estado })
+            .eq("id", id).eq("biblioteca_id", usuario.biblioteca_id).eq("estado", espacio.estado).select().maybeSingle();
+        if (error) return res.status(500).json({ mensaje: error.message });
+        if (!data) return res.status(409).json({ mensaje: "El estado del espacio cambió. Actualiza e intenta nuevamente." });
+        return res.json(data);
+    } catch (error) { return res.status(500).json({ mensaje: error.message }); }
 });
 
 // PATCH /api/espacios/:id/sillas-compartidas
