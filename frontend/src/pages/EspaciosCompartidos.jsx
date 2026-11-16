@@ -145,11 +145,12 @@ const EspaciosCompartidos = () => {
                                     <td>{Math.max(0, total - noDisponibles)}</td><td>{nombre || "—"}</td>
                                     <td>{reserva?.hora_fin || "—"}</td>
                                     <td>
-                                        <select className="form-input" value={espacio.estado === "mantenimiento" ? "mantenimiento" : "disponible"}
+                                        <select className="form-input" value={espacio.estado || "disponible"}
                                             onChange={(e) => actualizarEstado(espacio.id, e.target.value)}
                                             disabled={!["disponible", "mantenimiento"].includes(espacio.estado)}>
                                             <option value="disponible">Disponible</option>
                                             <option value="mantenimiento">Mantenimiento</option>
+                                            {espacio.estado === "ocupado" && <option value="ocupado">Ocupado</option>}
                                         </select>
                                     </td>
                                     <td>
