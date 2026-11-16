@@ -121,6 +121,7 @@ router.get("/", async (req, res) => {
                 correo,
                 rol,
                 estado,
+                biblioteca_id,
                 intentos_fallidos,
                 created_at
             `);
