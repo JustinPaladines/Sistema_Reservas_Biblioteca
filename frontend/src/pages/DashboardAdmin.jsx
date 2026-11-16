@@ -8,7 +8,8 @@ const DashboardAdmin = () =>{
         { titulo: "Gestion de Bibliotecas", desc: "Crear, editar y eliminar bibliotecas del sistema.", ruta: "/admin/bibliotecas"},
         { titulo: "Gestión de Espacios", desc: "Definir capacidad, características y asignación de espacios.", ruta: "/admin/espacios"},
         { titulo: "Historial de Reservas", desc: "Visualizar todas las reservas hechas en el sistema.", ruta: "/admin/reservas"},
-        { titulo: "Gestión de Usuarios", desc: "Administrar cuentas.", ruta: "/admin/usuarios"}
+        { titulo: "Gestión de Usuarios", desc: "Administrar cuentas.", ruta: "/admin/usuarios"},
+        { titulo: "Gestión de Parámetros", desc: "Configurar las reglas de reserva de cada biblioteca.", ruta: "/admin/parametros"}
     ];
     
     return (
