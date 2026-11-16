@@ -38,6 +38,7 @@ import ChatIA from "./pages/ChatIA";
 
 // gestión de usuarios
 import GestionUsuarios from "./pages/GestionUsuarios";
+import GestionParametros from "./pages/GestionParametros";
 
 export default function App() {
   return (
@@ -65,6 +66,7 @@ export default function App() {
         <Route path="/admin/reservas" element={<GestionReservasBibliotecario />} />
         <Route path="/admin/bibliotecas" element={<GestionBibliotecas />} />
         <Route path="/admin/usuarios" element={<GestionUsuarios />} />
+        <Route path="/admin/parametros" element={<GestionParametros />} />
       </Route>
 
       {/* bibliotecario */}
@@ -72,6 +74,7 @@ export default function App() {
         <Route path="/bibliotecario/dashboard" element={<DashboardBibliotecario />} />
         <Route path="/bibliotecario/espacios-compartidos" element={<EspaciosCompartidos />} />
         <Route path="/bibliotecario/reservas" element={<GestionReservasBibliotecario />} />
+        <Route path="/bibliotecario/parametros" element={<GestionParametros />} />
       </Route>
 
       {/* estudiante */}
