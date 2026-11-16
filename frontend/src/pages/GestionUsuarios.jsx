@@ -7,6 +7,7 @@ const GestionUsuarios = () => {
     const navigate = useNavigate();
     const [usuarios, setUsuarios] = useState([]);
     const [bibliotecas, setBibliotecas] = useState([]);
+    const [todasBibliotecas, setTodasBibliotecas] = useState([]);
     const [loading, setLoading] = useState(true);
     const [buscar, setBuscar] = useState("");
     const [rol, setRol] = useState("");
@@ -45,6 +46,7 @@ const GestionUsuarios = () => {
     const obtenerBibliotecas = async () => {
         try {
             const data = await api("/api/libraries");
+            setTodasBibliotecas(data);
             setBibliotecas(data.filter((biblioteca) => String(biblioteca.estado || "").toLowerCase() === "activa"));
         } catch (error) {
             alert(error.message || "No se pudieron cargar las bibliotecas.");
@@ -201,7 +203,7 @@ const GestionUsuarios = () => {
                     <table className="data-table">
                         <thead>
                             <tr>
-                                <th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th>
+                                <th>Nombre</th><th>Correo</th><th>Rol</th><th>Biblioteca</th><th>Estado</th>
                                 <th>Intentos fallidos</th><th>Fecha de creación</th><th>Acciones</th>
                             </tr>
                         </thead>
@@ -209,11 +211,12 @@ const GestionUsuarios = () => {
                             {usuarios.length > 0 ? usuarios.map((usuario) => (
                                 <tr key={usuario.id}>
                                     <td>{usuario.nombre}</td><td>{usuario.correo}</td><td>{usuario.rol}</td>
+                                    <td>{usuario.rol === "bibliotecario" ? (todasBibliotecas.find((biblioteca) => Number(biblioteca.id) === Number(usuario.biblioteca_id))?.nombre || "Sin biblioteca") : "—"}</td>
                                     <td>{usuario.estado}</td><td>{usuario.intentos_fallidos}</td>
                                     <td>{usuario.created_at ? new Date(usuario.created_at).toLocaleDateString("es-ES") : "Sin fecha"}</td>
                                     <td><button className="btn btn-success" onClick={() => editarUsuario(usuario)}>Editar estado</button></td>
                                 </tr>
-                            )) : <tr><td colSpan="7">No se encontraron usuarios.</td></tr>}
+                            )) : <tr><td colSpan="8">No se encontraron usuarios.</td></tr>}
                         </tbody>
                     </table>
                 </div>
